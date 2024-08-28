@@ -1,0 +1,49 @@
+# note: can also move with arrow keys
+
+# move up
+k
+
+# move right
+l
+
+# move down
+j
+
+# move left
+h
+
+# toggle repeat 
+r
+
+# save
+w
+
+# quit
+q
+
+# toggle ascii/color mode
+c
+
+# insert mode (press ESC to turn off)
+i
+
+# black color
+1
+# red color
+2
+# green color
+3
+# yellow color
+4
+# blue color
+5
+# magenta color
+y
+# cyan color
+t
+# white color
+8
+# save (overriding file)
+W
+# undo
+o

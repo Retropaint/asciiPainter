@@ -1,0 +1,5 @@
+if(UNIX)
+	add_library(agnos agnosUnix.cpp)
+else(WIN32)
+	add_library(agnos agnosWin32.cpp)
+endif()

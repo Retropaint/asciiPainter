@@ -1,0 +1,6 @@
+# schematic:
+# x, y, prevVal, currVal, mode
+
+2 12 3 4 ASCII
+11 3 2 5 COLOR 
+4 10 3 2 COLOR

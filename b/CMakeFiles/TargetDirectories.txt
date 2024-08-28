@@ -1,0 +1,6 @@
+/Users/o/projects/asciiPainter/b/CMakeFiles/asciiPainter.dir
+/Users/o/projects/asciiPainter/b/CMakeFiles/edit_cache.dir
+/Users/o/projects/asciiPainter/b/CMakeFiles/rebuild_cache.dir
+/Users/o/projects/asciiPainter/b/agnos/CMakeFiles/agnos.dir
+/Users/o/projects/asciiPainter/b/agnos/CMakeFiles/edit_cache.dir
+/Users/o/projects/asciiPainter/b/agnos/CMakeFiles/rebuild_cache.dir
