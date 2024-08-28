@@ -12,9 +12,11 @@ Higher versions will work unless stated otherwise. Lower versions were not teste
   * `PDCurses v3.9` or `PDCursesMod v4.4.0` (both included in source)
 
 ## Building
+Clone this repo (either with `git clone` or the the big green button above).
+
+Then, in that folder:
+
 ```
-git clone https://github.com/Retropaint/asciiPainter
-cd asciiPainter
 mkdir b
 cd b
 cmake ..
