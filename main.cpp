@@ -185,13 +185,12 @@ void edit(char k, int x = cursorX, int y = cursorY, bool undid = false, bool cha
 		struct action newAction;
 		newAction.x = x;
 		newAction.y = y;
-		newAction.prevVal = (!isColorMode) ? ascii.at(y)[x] : colorCoords.at(y)[x];
+		newAction.prevVal = (isColorMode ? colorCoords : ascii).at(y)[x];
 		newAction.isColor = isColorMode;
 		actions.push_back(newAction);
 	}
 
-	if(changeColor) colorCoords.at(y)[x] = k;
-	else ascii.at(y)[x] = k;
+	(changeColor ? colorCoords : ascii).at(y)[x];
 }
 
 void undo() {
