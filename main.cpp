@@ -49,7 +49,7 @@ int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','
 struct action {
 	int x, y;
 	char prevVal;
-	bool isColor;
+	bool wasColor;
 };
 vector<action> actions;
 
@@ -186,7 +186,7 @@ void edit(char k, int x = cursorX, int y = cursorY, bool undid = false, bool cha
 		newAction.x = x;
 		newAction.y = y;
 		newAction.prevVal = (isColorMode ? colorCoords : ascii).at(y)[x];
-		newAction.isColor = isColorMode;
+		newAction.wasColor = isColorMode;
 		actions.push_back(newAction);
 	}
 
@@ -204,7 +204,7 @@ void undo() {
 	// replace NULL char with space
 	if((int)LAST_ACTION.prevVal == 0) editChar = ' ';
 
-	edit(editChar, LAST_ACTION.x, LAST_ACTION.y, true, LAST_ACTION.isColor);
+	edit(editChar, LAST_ACTION.x, LAST_ACTION.y, true, LAST_ACTION.wasColor);
 }
 
 bool isArrowKey(int k) {
