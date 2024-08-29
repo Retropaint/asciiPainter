@@ -185,7 +185,6 @@ void edit(char k, int x = cursorX, int y = cursorY, bool undid = false, bool cha
 		newAction.x = x;
 		newAction.y = y;
 		newAction.prevVal = (!isColorMode) ? ascii.at(y)[x] : colorCoords.at(y)[x];
-		newAction.currVal = k;
 		newAction.isColor = isColorMode;
 		actions.push_back(newAction);
 	}
