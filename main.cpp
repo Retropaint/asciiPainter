@@ -232,22 +232,22 @@ void checkColorKeys(int k) {
 }
 
 void floodFill(int x, int y, char key, char toReplace) {
-	if(key == toReplace || (int)key == 0 || key == ' ' || x == -1 || y == -1) return;
+	if(
+		key == toReplace ||
+		key == ' ' ||
+		(int)key == 0 ||
+		x == -1 ||
+		y == -1
+	) return;
 
 	edit(key, x, y);
 
 	// recursive
-	if(!isColorMode) {
-		if(ascii.at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
-		if(ascii.at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
-		if(ascii.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
-		if(y-1 != -1 && ascii.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
-	} else {
-		if(colorCoords.at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
-		if(colorCoords.at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
-		if(y+1 < colorCoords.size() && colorCoords.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
-		if(y-1 != -1 && colorCoords.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
-	}
+	auto *content = (isColorMode) ? &colorCoords : &ascii;
+	if(content->at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
+	if(content->at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
+	if(y+1 < content->size() && content->at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
+	if(y-1 != -1 && content->at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
 }
 
 void getInput() {
