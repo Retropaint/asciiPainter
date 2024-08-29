@@ -265,6 +265,7 @@ void getInput() {
 		char toReplace = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
 		floodFill(cursorX, cursorY, (char)k, toReplace);
 		isFilling = false;
+		return;
 	}
 
 	// in ASCII mode, enter any key that's not in config (including color keys)
