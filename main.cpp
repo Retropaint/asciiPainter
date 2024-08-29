@@ -22,10 +22,10 @@
 #define ASCIICOLOR 7
 #define INSERT 8
 #define FIRSTCOLOR 9
-#define LASTCOLOR 16
-#define SAVEOVERRIDE 17
-#define UNDO 18
-#define FLOODFILL 19
+#define LASTCOLOR 17
+#define SAVEOVERRIDE 18
+#define UNDO 19
+#define FLOODFILL 20
 
 using std::string;
 using std::vector;
@@ -42,7 +42,7 @@ bool isColorMode = false;
 bool isInsertMode = false;
 bool saved = false;
 
-int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','W','u','f'};
+int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f'};
 
 // storing actions for the undo feature
 struct action {
@@ -236,10 +236,17 @@ void floodFill(char k, int x, int y) {
 	edit(k, x, y);
 
 	// recursive
-	if(ascii.at(y)[x-1] == ' ') floodFill(k, x-1, y);
-	if(ascii.at(y)[x+1] == ' ') floodFill(k, x+1, y);
-	if(ascii.at(y+1)[x] == ' ') floodFill(k, x, y+1);
-	if(y-1 != -1 && ascii.at(y-1)[x] == ' ') floodFill(k, x, y-1);
+	if(!isColorMode) {
+		if(ascii.at(y)[x-1] == ' ') floodFill(k, x-1, y);
+		if(ascii.at(y)[x+1] == ' ') floodFill(k, x+1, y);
+		if(ascii.at(y+1)[x] == ' ') floodFill(k, x, y+1);
+		if(y-1 != -1 && ascii.at(y-1)[x] == ' ') floodFill(k, x, y-1);
+	} else {
+		if(colorCoords.at(y)[x-1] == '0') floodFill(k, x-1, y);
+		if(colorCoords.at(y)[x+1] == '0') floodFill(k, x+1, y);
+		if(y+1 < colorCoords.size() && colorCoords.at(y+1)[x] == '0') floodFill(k, x, y+1);
+		if(y-1 != -1 && colorCoords.at(y-1)[x] == '0') floodFill(k, x, y-1);
+	}
 }
 
 void getInput() {
@@ -280,13 +287,14 @@ void getInput() {
 	}
 	if(k == input[REPEAT]) {
 		if(repeat != NOCOLOR) repeat = NOCOLOR;
-		else repeat = (isColorMode)? colorCoords.at(cursorY)[cursorX] : ascii.at(cursorY)[cursorX];
+		else repeat = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
 	}
 	if(k == input[UNDO]) {
 		undo();
 	}
 	if(k == input[FLOODFILL]) {
-		floodFill((char)ascii.at(cursorY)[cursorX], cursorX, cursorY);
+		char key = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
+		floodFill(key, cursorX, cursorY);
 	}
 	
 	if(isColorMode) checkColorKeys(k);	
@@ -328,6 +336,7 @@ int main(int argc, char **argv) {
 	init_pair(6, COLOR_MAGENTA, -1);
 	init_pair(7, COLOR_CYAN, -1);
 	init_pair(8, COLOR_WHITE, -1);
+	init_pair(9, -1, -1);
 
 	loadConfig();
 	
