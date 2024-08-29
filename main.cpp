@@ -232,9 +232,11 @@ void checkColorKeys(int k) {
 }
 
 void floodFill(char k, int x, int y) {
-	if((int)k == 0 || x == -1 || y == -1) return;
+	if((int)k == 0 || k == ' ' || x == -1 || y == -1) return;
 
 	edit(k, x, y);
+
+	// recursive
 	if(ascii.at(y)[x-1] == ' ') floodFill(k, x-1, y);
 	if(ascii.at(y)[x+1] == ' ') floodFill(k, x+1, y);
 	if(ascii.at(y+1)[x] == ' ') floodFill(k, x, y+1);
