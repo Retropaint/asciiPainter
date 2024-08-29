@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <regex>
 
 #define NOCOLOR -1
 #define ESC 27
@@ -24,6 +25,7 @@
 #define LASTCOLOR 16
 #define SAVEOVERRIDE 17
 #define UNDO 18
+#define FLOODFILL 19
 
 using std::string;
 using std::vector;
@@ -40,7 +42,8 @@ bool isColorMode = false;
 bool isInsertMode = false;
 bool saved = false;
 
-int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','W','u'};
+int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','W','u','f'};
+vector<char> asciiRegex;
 
 // storing actions for the undo feature
 struct action {
@@ -229,6 +232,16 @@ void checkColorKeys(int k) {
 	}
 }
 
+void floodFill(char k, int x, int y) {
+	if((int)k == 0 || x == -1 || y == -1) return;
+
+	edit(k, x, y);
+	if(ascii.at(y)[x-1] == ' ') floodFill(k, x-1, y);
+	if(ascii.at(y)[x+1] == ' ') floodFill(k, x+1, y);
+	if(ascii.at(y+1)[x] == ' ') floodFill(k, x, y+1);
+	if(y-1 != -1 && ascii.at(y-1)[x] == ' ') floodFill(k, x, y-1);
+}
+
 void getInput() {
 	int k = getch();
 	if(k == ESC) {
@@ -271,6 +284,9 @@ void getInput() {
 	}
 	if(k == input[UNDO]) {
 		undo();
+	}
+	if(k == input[FLOODFILL]) {
+		floodFill((char)ascii.at(cursorY)[cursorX], cursorX, cursorY);
 	}
 	
 	if(isColorMode) checkColorKeys(k);	
