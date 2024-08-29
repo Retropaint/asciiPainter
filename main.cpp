@@ -190,7 +190,7 @@ void edit(char k, int x = cursorX, int y = cursorY, bool undid = false, bool cha
 		actions.push_back(newAction);
 	}
 
-	(changeColor ? colorCoords : ascii).at(y)[x];
+	(changeColor ? colorCoords : ascii).at(y)[x] = k;
 }
 
 void undo() {
