@@ -40,6 +40,7 @@ int repeat = NOCOLOR;
 bool on = true;
 bool isColorMode = false;
 bool isInsertMode = false;
+bool isFilling = false;
 bool saved = false;
 
 int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f'};
@@ -230,22 +231,22 @@ void checkColorKeys(int k) {
 	}
 }
 
-void floodFill(char k, int x, int y) {
-	if((int)k == 0 || k == ' ' || x == -1 || y == -1) return;
+void floodFill(int x, int y, char key, char toReplace) {
+	if(key == toReplace || (int)key == 0 || key == ' ' || x == -1 || y == -1) return;
 
-	edit(k, x, y);
+	edit(key, x, y);
 
 	// recursive
 	if(!isColorMode) {
-		if(ascii.at(y)[x-1] == ' ') floodFill(k, x-1, y);
-		if(ascii.at(y)[x+1] == ' ') floodFill(k, x+1, y);
-		if(ascii.at(y+1)[x] == ' ') floodFill(k, x, y+1);
-		if(y-1 != -1 && ascii.at(y-1)[x] == ' ') floodFill(k, x, y-1);
+		if(ascii.at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
+		if(ascii.at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
+		if(ascii.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
+		if(y-1 != -1 && ascii.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
 	} else {
-		if(colorCoords.at(y)[x-1] == '0') floodFill(k, x-1, y);
-		if(colorCoords.at(y)[x+1] == '0') floodFill(k, x+1, y);
-		if(y+1 < colorCoords.size() && colorCoords.at(y+1)[x] == '0') floodFill(k, x, y+1);
-		if(y-1 != -1 && colorCoords.at(y-1)[x] == '0') floodFill(k, x, y-1);
+		if(colorCoords.at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
+		if(colorCoords.at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
+		if(y+1 < colorCoords.size() && colorCoords.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
+		if(y-1 != -1 && colorCoords.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
 	}
 }
 
@@ -258,6 +259,11 @@ void getInput() {
 	if(isInsertMode && !isArrowKey(k)) {
 		edit(k);
 		return;
+	}
+	if(isFilling) {
+		char toReplace = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
+		floodFill(cursorX, cursorY, (char)k, toReplace);
+		isFilling = false;
 	}
 
 	// in ASCII mode, enter any key that's not in config (including color keys)
@@ -293,8 +299,7 @@ void getInput() {
 		undo();
 	}
 	if(k == input[FLOODFILL]) {
-		char key = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
-		floodFill(key, cursorX, cursorY);
+		isFilling = true;
 	}
 	
 	if(isColorMode) checkColorKeys(k);	
@@ -309,9 +314,10 @@ void displayStatus() {
 	string isRepeat = (repeat != NOCOLOR) ? " REPEAT" : "";
 	string insert = (isInsertMode) ? " INSERT" : "";
 	string saved = (savedFilename != "") ? " SAVED AS " + savedFilename : "";
+	string filling = (isFilling) ? " ENTER KEY TO FILL" : "";
 	savedFilename = "";
 
-	string finalStr = mode + isRepeat + insert + saved;
+	string finalStr = mode + isRepeat + insert + saved + filling;
 	mvaddstr(LINES-1, 0, finalStr.c_str());
 	standend();
 }
