@@ -245,10 +245,11 @@ void floodFill(int x, int y, char key, char toReplace) {
 
 	// recursive
 	auto& content = (isColorMode) ? colorCoords : ascii;
-	if(content.at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
-	if(content.at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
-	if(y+1 < content.size() && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
-	if(y-1 != -1 && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
+	int s = content.size();
+	if(content.at(y)[x-1] == toReplace) 			floodFill(x-1, y, key, toReplace);
+	if(content.at(y)[x+1] == toReplace) 			floodFill(x+1, y, key, toReplace);
+	if(y+1 < s && content.at(y+1)[x] == toReplace)	floodFill(x, y+1, key, toReplace);
+	if(y-1 > -1 && content.at(y-1)[x] == toReplace)	floodFill(x, y-1, key, toReplace);
 }
 
 void getInput() {
@@ -280,7 +281,7 @@ void getInput() {
 	if(k == input[MOVEDOWN]  || k == KEY_DOWN)  cursorY++;
 	if(k == input[MOVELEFT]  || k == KEY_LEFT) 	cursorX = fmax(cursorX-1, 0);
 
-	if			(k == input[SAVE]) 					save(false);
+	if			(k == input[SAVE]) 		save(false);
 	else if	(k == input[SAVEOVERRIDE])	save(true);
 
 	if(k == input[QUIT]) on = false;
@@ -312,14 +313,14 @@ void getInput() {
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
-	string mode =			(isColorMode)					? "COLOR" : "ASCII";
-	string isRepeat = (repeat != NOCOLOR)		? " REPEAT" : "";
-	string insert =		(isInsertMode)				? " INSERT" : "";
-	string saved =		(savedFilename != "") ? " SAVED AS " + savedFilename : "";
-	string filling =	(isFilling) 					? " ENTER KEY TO FILL" : "";
+	string mode =		(isColorMode)			? "COLOR" : "ASCII";
+	string isRepeat = 	(repeat != NOCOLOR)		? " REPEAT" : "";
+	string insert =		(isInsertMode)			? " INSERT" : "";
+	string saved =		(savedFilename != "") 	? " SAVED AS " + savedFilename : "";
+	string filling =	(isFilling) 			? " ENTER KEY TO FILL" : "";
 
 	// empty it, so save status disappears
-	savedFilename =		"";
+	savedFilename = "";
 
 	string finalStr = mode + isRepeat + insert + saved + filling;
 	mvaddstr(LINES-1, 0, finalStr.c_str());
