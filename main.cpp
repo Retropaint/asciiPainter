@@ -310,12 +310,14 @@ void getInput() {
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
-	string mode = (isColorMode) ? "COLOR" : "ASCII";
-	string isRepeat = (repeat != NOCOLOR) ? " REPEAT" : "";
-	string insert = (isInsertMode) ? " INSERT" : "";
-	string saved = (savedFilename != "") ? " SAVED AS " + savedFilename : "";
-	string filling = (isFilling) ? " ENTER KEY TO FILL" : "";
-	savedFilename = "";
+	string mode =			(isColorMode)					? "COLOR" : "ASCII";
+	string isRepeat = (repeat != NOCOLOR)		? " REPEAT" : "";
+	string insert =		(isInsertMode)				? " INSERT" : "";
+	string saved =		(savedFilename != "") ? " SAVED AS " + savedFilename : "";
+	string filling =	(isFilling) 					? " ENTER KEY TO FILL" : "";
+
+	// empty it, so save status disappears
+	savedFilename =		"";
 
 	string finalStr = mode + isRepeat + insert + saved + filling;
 	mvaddstr(LINES-1, 0, finalStr.c_str());
