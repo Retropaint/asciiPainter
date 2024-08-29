@@ -8,7 +8,7 @@
 #include <string>
 #include <regex>
 
-#define NOCOLOR -1
+#define NONE 1
 #define ESC 27
 
 // input indices
@@ -36,7 +36,7 @@ string filename;
 string savedFilename;
 int cursorX = 0;
 int cursorY = 0;
-int repeat = NOCOLOR;
+int repeat = NONE;
 bool on = true;
 bool isColorMode = false;
 bool isInsertMode = false;
@@ -256,7 +256,7 @@ void getInput() {
 	int k = getch();
 	if(k == ESC) {
 		isInsertMode = false;
-		repeat = NOCOLOR;
+		repeat = NONE;
 	}
 	if(isInsertMode && !isArrowKey(k)) {
 		edit(k);
@@ -288,14 +288,14 @@ void getInput() {
 		
 	if(k == input[ASCIICOLOR]) {
 		isColorMode = !isColorMode; 
-		repeat = NOCOLOR;
+		repeat = NONE;
 	}
 	if(k == input[INSERT]) {
 		isColorMode = false;
 		isInsertMode = !isInsertMode;
 	}
 	if(k == input[REPEAT]) {
-		if(repeat != NOCOLOR) repeat = NOCOLOR;
+		if (repeat != NONE) repeat = NONE;
 		else repeat = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
 	}
 	if(k == input[UNDO]) {
@@ -307,14 +307,14 @@ void getInput() {
 	
 	if(isColorMode) checkColorKeys(k);	
 
-	if(repeat != NOCOLOR) edit((char)repeat);
+	if(repeat != NONE) edit((char)repeat);
 }
 
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
 	string mode =		(isColorMode)			? "COLOR" : "ASCII";
-	string isRepeat = 	(repeat != NOCOLOR)		? " REPEAT" : "";
+	string isRepeat = 	(repeat != NONE)		? " REPEAT" : "";
 	string insert =		(isInsertMode)			? " INSERT" : "";
 	string saved =		(savedFilename != "") 	? " SAVED AS " + savedFilename : "";
 	string filling =	(isFilling) 			? " ENTER KEY TO FILL" : "";
