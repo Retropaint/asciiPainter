@@ -48,7 +48,7 @@ vector<char> asciiRegex;
 // storing actions for the undo feature
 struct action {
 	int x, y;
-	char prevVal, currVal;
+	char prevVal;
 	bool isColor;
 };
 vector<action> actions;
