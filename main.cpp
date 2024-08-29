@@ -235,6 +235,7 @@ void floodFill(int x, int y, char key, char toReplace) {
 	if(
 		key == toReplace ||
 		key == ' ' ||
+		(int)toReplace == 0 ||
 		(int)key == 0 ||
 		x == -1 ||
 		y == -1
