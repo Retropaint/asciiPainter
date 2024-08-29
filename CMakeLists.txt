@@ -14,7 +14,7 @@ set(includes)
 set(libs)
 set(dirLinks)
 
-# wildcards, for include directories
+# global include dirs
 list(APPEND includes 
 	${CMAKE_CURRENT_SOURCE_DIR} 
 	${CMAKE_CURRENT_BINARY_DIR}
