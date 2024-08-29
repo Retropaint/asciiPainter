@@ -244,11 +244,11 @@ void floodFill(int x, int y, char key, char toReplace) {
 	edit(key, x, y);
 
 	// recursive
-	auto *content = (isColorMode) ? &colorCoords : &ascii;
-	if(content->at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
-	if(content->at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
-	if(y+1 < content->size() && content->at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
-	if(y-1 != -1 && content->at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
+	auto& content = (isColorMode) ? colorCoords : ascii;
+	if(content.at(y)[x-1] == toReplace) floodFill(x-1, y, key, toReplace);
+	if(content.at(y)[x+1] == toReplace) floodFill(x+1, y, key, toReplace);
+	if(y+1 < content.size() && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace);
+	if(y-1 != -1 && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
 }
 
 void getInput() {
