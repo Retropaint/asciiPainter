@@ -52,7 +52,7 @@ struct action {
 	bool wasFill, wasColor;
 
 	action(int _x, int _y, char _prevVal, char _nextVal, bool _wasFill, bool _wasColor) {
-		x=_y;
+		x=_x;
 		y=_y;
 		prevVal=_prevVal;
 		nextVal=_nextVal;
@@ -188,11 +188,31 @@ void edit(char k, int x = cursorX, int y = cursorY, int shouldRecord = true, boo
 	}
 
 	if(shouldRecord) {
-		struct action newAction(x, y, (isColorMode ? colorCoords : ascii).at(y)[x], k, isColorMode, isFilling);
+		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, isFilling, changeColor);
 		actions.push_back(newAction);
 	}
 
 	(changeColor ? colorCoords : ascii).at(y)[x] = k;
+}
+
+void floodFill(int x, int y, char key, char toReplace) {
+	if(
+		key == toReplace ||
+		(int)toReplace == 0 ||
+		(int)key == 0 ||
+		x == -1 ||
+		y == -1
+	) return;
+
+	edit(key, x, y, true);
+
+	// recursive
+	auto& content = (isColorMode) ? colorCoords : ascii;
+	int s = content.size();
+	if(content.at(y)[x-1] == toReplace) 			floodFill(x-1, y, key, toReplace);
+	if(content.at(y)[x+1] == toReplace) 			floodFill(x+1, y, key, toReplace);
+	if(y+1 < s && content.at(y+1)[x] == toReplace)	floodFill(x, y+1, key, toReplace);
+	if(y-1 > -1 && content.at(y-1)[x] == toReplace)	floodFill(x, y-1, key, toReplace);
 }
 
 bool isArrowKey(int k) {
@@ -219,27 +239,6 @@ void checkColorKeys(int k) {
 	}
 }
 
-void floodFill(int x, int y, char key, char toReplace) {
-	if(
-		key == toReplace ||
-		(int)toReplace == 0 ||
-		(int)key == 0 ||
-		x == -1 ||
-		y == -1
-	) return;
-
-	
-	edit(key, x, y, false);
-
-	// recursive
-	auto& content = (isColorMode) ? colorCoords : ascii;
-	int s = content.size();
-	if(content.at(y)[x-1] == toReplace) 			floodFill(x-1, y, key, toReplace);
-	if(content.at(y)[x+1] == toReplace) 			floodFill(x+1, y, key, toReplace);
-	if(y+1 < s && content.at(y+1)[x] == toReplace)	floodFill(x, y+1, key, toReplace);
-	if(y-1 > -1 && content.at(y-1)[x] == toReplace)	floodFill(x, y-1, key, toReplace);
-}
-
 void undo() {
 	const struct action LAST_ACTION = actions.at(actions.size()-1);
 	char editChar = LAST_ACTION.prevVal;
@@ -251,11 +250,14 @@ void undo() {
 	// replace NULL char with space
 	if((int)LAST_ACTION.prevVal == 0) editChar = ' ';
 	
-	if(LAST_ACTION.wasFill) floodFill(LAST_ACTION.x, LAST_ACTION.y, editChar, LAST_ACTION.nextVal);
-	else edit(editChar, LAST_ACTION.x, LAST_ACTION.y, false, LAST_ACTION.wasColor);
+	const bool IS_DUMMY = LAST_ACTION.x == -1;
+	if(!IS_DUMMY) edit(editChar, LAST_ACTION.x, LAST_ACTION.y, false, LAST_ACTION.wasColor);
 
 	const bool ACTIONS_LEFT = actions.size() > 1;
-	if(ACTIONS_LEFT) actions.pop_back();
+    if(ACTIONS_LEFT) actions.pop_back();
+
+	// keep calling undo for flood-filled chars (stops at dummy action)
+	if(LAST_ACTION.wasFill) undo();
 }
 
 void getInput() {
@@ -271,10 +273,12 @@ void getInput() {
 	}
 	if(isFilling) {
 		char toReplace = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
+		// add dummy action, to separate simultaneous flood-fills
+		struct action floodAction(-1, -1, toReplace, k, false, isColorMode);
+		actions.push_back(floodAction);
+
 		floodFill(cursorX, cursorY, (char)k, toReplace);
 		isFilling = false;
-		struct action floodAction(cursorX, cursorY, toReplace, k, isColorMode, true);
-		actions.push_back(floodAction);
 		return;
 	}
 
