@@ -343,15 +343,15 @@ int main(int argc, char **argv) {
 	cbreak();
 	agnos::setESCDELAY(0);
 	keypad(stdscr, true);
-	init_pair(1, COLOR_BLACK, -1);
-	init_pair(2, COLOR_RED, -1);
-	init_pair(3, COLOR_GREEN, -1);
-	init_pair(4, COLOR_YELLOW, -1);
-	init_pair(5, COLOR_BLUE, -1);
+	init_pair(1, COLOR_BLACK, 	-1);
+	init_pair(2, COLOR_RED, 	-1);
+	init_pair(3, COLOR_GREEN, 	-1);
+	init_pair(4, COLOR_YELLOW, 	-1);
+	init_pair(5, COLOR_BLUE, 	-1);
 	init_pair(6, COLOR_MAGENTA, -1);
-	init_pair(7, COLOR_CYAN, -1);
-	init_pair(8, COLOR_WHITE, -1);
-	init_pair(9, -1, -1);
+	init_pair(7, COLOR_CYAN, 	-1);
+	init_pair(8, COLOR_WHITE,	-1);
+	init_pair(9, -1,			-1);
 
 	loadConfig();
 	
