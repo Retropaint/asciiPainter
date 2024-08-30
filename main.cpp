@@ -17,13 +17,13 @@
 #define MOVEDOWN 2
 #define MOVELEFT 3
 #define REPEAT 4
-#define SAVE 5
+#define SAVENEW 5
 #define QUIT 6
 #define ASCIICOLOR 7
 #define INSERT 8
 #define FIRSTCOLOR 9
 #define LASTCOLOR 17
-#define SAVEOVERRIDE 18
+#define SAVE 18
 #define UNDO 19
 #define FLOODFILL 20
 
@@ -47,9 +47,18 @@ int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','
 
 // storing actions for the undo feature
 struct action {
-	int x, y;
-	char prevVal;
-	bool wasColor;
+	short int x, y;
+	char prevVal, nextVal;
+	bool wasFill, wasColor;
+
+	action(int _x, int _y, char _prevVal, char _nextVal, bool _wasFill, bool _wasColor) {
+		x=_y;
+		y=_y;
+		prevVal=_prevVal;
+		nextVal=_nextVal;
+		wasFill=_wasFill;
+		wasColor=_wasColor;
+	}
 };
 vector<action> actions;
 
@@ -163,7 +172,7 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-void edit(char k, int x = cursorX, int y = cursorY, bool undid = false, bool changeColor = isColorMode) {
+void edit(char k, int x = cursorX, int y = cursorY, int shouldRecord = true, bool changeColor = isColorMode) {
 	// fill in gaps with whitespaces
 	if(y > ascii.size()-1) {
 		const int REMAINING = y - (ascii.size()-1);
@@ -178,33 +187,12 @@ void edit(char k, int x = cursorX, int y = cursorY, bool undid = false, bool cha
 		colorCoords.at(y).append(REMAINING, '0');
 	}
 
-	if(undid) {
-		const bool ACTIONS_LEFT = actions.size() > 1;
-		if(ACTIONS_LEFT) actions.pop_back();
-	} else {
-		struct action newAction;
-		newAction.x = x;
-		newAction.y = y;
-		newAction.prevVal = (isColorMode ? colorCoords : ascii).at(y)[x];
-		newAction.wasColor = isColorMode;
+	if(shouldRecord) {
+		struct action newAction(x, y, (isColorMode ? colorCoords : ascii).at(y)[x], k, isColorMode, isFilling);
 		actions.push_back(newAction);
 	}
 
 	(changeColor ? colorCoords : ascii).at(y)[x] = k;
-}
-
-void undo() {
-	const struct action LAST_ACTION = actions.at(actions.size()-1);
-	char editChar = LAST_ACTION.prevVal;
-
-	/* 
-		to-do: deal with null char directly 
-	 	(whitespace might not behave the same across terminals, and undoing this still leaves ascii data as if space was entered) 
-	*/
-	// replace NULL char with space
-	if((int)LAST_ACTION.prevVal == 0) editChar = ' ';
-
-	edit(editChar, LAST_ACTION.x, LAST_ACTION.y, true, LAST_ACTION.wasColor);
 }
 
 bool isArrowKey(int k) {
@@ -234,14 +222,14 @@ void checkColorKeys(int k) {
 void floodFill(int x, int y, char key, char toReplace) {
 	if(
 		key == toReplace ||
-		key == ' ' ||
 		(int)toReplace == 0 ||
 		(int)key == 0 ||
 		x == -1 ||
 		y == -1
 	) return;
 
-	edit(key, x, y);
+	
+	edit(key, x, y, false);
 
 	// recursive
 	auto& content = (isColorMode) ? colorCoords : ascii;
@@ -252,11 +240,30 @@ void floodFill(int x, int y, char key, char toReplace) {
 	if(y-1 > -1 && content.at(y-1)[x] == toReplace)	floodFill(x, y-1, key, toReplace);
 }
 
+void undo() {
+	const struct action LAST_ACTION = actions.at(actions.size()-1);
+	char editChar = LAST_ACTION.prevVal;
+
+	/* 
+		to-do: deal with null char directly 
+	 	(whitespace might not behave the same across terminals, and undoing this still leaves ascii data as if space was entered) 
+	*/
+	// replace NULL char with space
+	if((int)LAST_ACTION.prevVal == 0) editChar = ' ';
+	
+	if(LAST_ACTION.wasFill) floodFill(LAST_ACTION.x, LAST_ACTION.y, editChar, LAST_ACTION.nextVal);
+	else edit(editChar, LAST_ACTION.x, LAST_ACTION.y, false, LAST_ACTION.wasColor);
+
+	const bool ACTIONS_LEFT = actions.size() > 1;
+	if(ACTIONS_LEFT) actions.pop_back();
+}
+
 void getInput() {
 	int k = getch();
 	if(k == ESC) {
 		isInsertMode = false;
 		repeat = NONE;
+		return;
 	}
 	if(isInsertMode && !isArrowKey(k)) {
 		edit(k);
@@ -266,6 +273,8 @@ void getInput() {
 		char toReplace = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
 		floodFill(cursorX, cursorY, (char)k, toReplace);
 		isFilling = false;
+		struct action floodAction(cursorX, cursorY, toReplace, k, isColorMode, true);
+		actions.push_back(floodAction);
 		return;
 	}
 
@@ -280,11 +289,12 @@ void getInput() {
 	if(k == input[MOVERIGHT] || k == KEY_RIGHT) cursorX++;
 	if(k == input[MOVEDOWN]  || k == KEY_DOWN)  cursorY++;
 	if(k == input[MOVELEFT]  || k == KEY_LEFT) 	cursorX = fmax(cursorX-1, 0);
-
-	if			(k == input[SAVE]) 		save(false);
-	else if	(k == input[SAVEOVERRIDE])	save(true);
-
-	if(k == input[QUIT]) on = false;
+	
+	if(k == input[UNDO])		undo();
+	if(k == input[QUIT])		on = false;
+	if(k == input[FLOODFILL])	isFilling = true;
+	if(k == input[SAVENEW]) 	save(false);
+	if(k == input[SAVE])		save(true);
 		
 	if(k == input[ASCIICOLOR]) {
 		isColorMode = !isColorMode; 
@@ -298,13 +308,7 @@ void getInput() {
 		if (repeat != NONE) repeat = NONE;
 		else repeat = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
 	}
-	if(k == input[UNDO]) {
-		undo();
-	}
-	if(k == input[FLOODFILL]) {
-		isFilling = true;
-	}
-	
+		
 	if(isColorMode) checkColorKeys(k);	
 
 	if(repeat != NONE) edit((char)repeat);
@@ -314,7 +318,7 @@ void displayStatus() {
 	attron(COLOR_PAIR(8));
 
 	string mode =		(isColorMode)			? "COLOR" : "ASCII";
-	string isRepeat = 	(repeat != NONE)		? " REPEAT" : "";
+	string isRepeat =	(repeat != NONE)		? " REPEAT" : "";
 	string insert =		(isInsertMode)			? " INSERT" : "";
 	string saved =		(savedFilename != "") 	? " SAVED AS " + savedFilename : "";
 	string filling =	(isFilling) 			? " ENTER KEY TO FILL" : "";
