@@ -10,3 +10,7 @@ ${B}libagnos.a: ${B}
 
 ${B}:
 	mkdir ${B}
+
+.PHONY: distclean
+distclean:
+	rm -rf build
