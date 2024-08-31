@@ -1,6 +1,9 @@
-CC		 =cl
-CFLAGS =/EHsc
-B			 =build
+CC		 = cl
+CFLAGS = /EHsc
+B			 = build
+
+TARGET  = $(B)/asciiPainter
+AGNOS_O = $(B)/agnos.obj
 
 # target
 SRC      = main.cpp
@@ -8,15 +11,15 @@ OUTPUT   = -o $(B)/asciiPainter
 INCLUDES = /I.\deps\pdcurses\pdcursesMod 
 PDCURSES = /link /LIBPATH:.\deps\pdcurses\pdcursesMod pdcursesMod.lib
 SYSLIBS  = user32.lib advapi32.lib
-DEPS     = agnos.obj $(PDCURSES) $(SYSLIBS)
-asciiPainter: agnos.obj
-	$(CC) $(CFLAGS) main.cpp $(OUTPUT) $(INCLUDES) $(DEPS)
+LINKS    = $(AGNOS_O) $(PDCURSES) $(SYSLIBS)
+$(TARGET): $(AGNOS_O)
+	$(CC) $(CFLAGS) main.cpp $(OUTPUT) $(INCLUDES) $(LINKS)
 
 # agnos
 SRC    = agnos/agnosWin32.cpp
 CFLAGS = /EHsc /c
 OUTPUT = /Fo:"$(B)/agnos"
-agnos.obj: $(B)
+$(AGNOS_O): $(B)
 	$(CC) $(CFLAGS) $(SRC) $(OUTPUT) $(INCLUDES)
 
 # build folder
