@@ -14,14 +14,20 @@ Higher versions will work unless stated otherwise. Lower versions were not teste
 ## Building
 Clone this repo (either with `git clone` or the the big green button above).
 
-With CMake:
-`mkdir build && cmake -S . -B build && cmake --build build --config=release`
+* CMake:
+```
+mkdir build && cmake -S . -B build && cmake --build build --config=release
+```
 
-With make:
-`make`
+* make:
+```
+make -f Makefile
+```
 
-With nmake:
-`nmake -f Makefile.vc`
+* nmake:
+```
+nmake -f Makefile.vc
+```
 
 ### CMake Parameters
 
