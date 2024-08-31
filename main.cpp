@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstring>
 #include <string>
-#include <regex>
 
 #define NONE 1
 #define ESC 27
