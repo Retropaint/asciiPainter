@@ -5,25 +5,23 @@ asciiPainter is a simple CLI tool for creating and editing ASCII, with support f
 
 ## Dependencies
 Higher versions will work unless stated otherwise. Lower versions were not tested (but accepting issues for doing so).
-* `CMake v3.29.1`
 * Linux/MacOS:
   * `ncurses v6.5`
 * Windows: 
   * `PDCurses v3.9` or `PDCursesMod v4.4.0` (both included in source)
+* (Optional) `CMake v3.29.1`
 
 ## Building
 Clone this repo (either with `git clone` or the the big green button above).
 
-Then, in that folder:
+With CMake:
+`mkdir build && cmake -S . -B build && cmake --build build --config=release`
 
-```
-mkdir b
-cd b
-cmake ..
-cmake --build .
-```
+With make:
+`make`
 
-asciiPainter accepts a filename as the first parameter, but it must end in `.txt`. A sample file is included (assets/bewd.txt).
+With nmake:
+`nmake -f Makefile.vc`
 
 ### CMake Parameters
 
