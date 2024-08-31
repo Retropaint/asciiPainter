@@ -1,8 +1,12 @@
 CC=g++
 CFLAGS=-std=c++11 -Wall
+B=build/
 
-asciiPainter: libagnos.a
-	${CC} ${CFLAGS} -L./ -lncurses -lagnos main.cpp -o asciiPainter
+${B}asciiPainter: ${B}libagnos.a
+	${CC} ${CFLAGS} -L${B} -lncurses -lagnos main.cpp -o ${B}asciiPainter
 
-libagnos.a:
-	${CC} ${CFLAGS} -c agnos/agnosUnix.cpp -o libagnos.a
+${B}libagnos.a: ${B}
+	${CC} ${CFLAGS} -c agnos/agnosUnix.cpp -o ${B}libagnos.a
+
+${B}:
+	mkdir ${B}
