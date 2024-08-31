@@ -25,3 +25,7 @@ $(AGNOS_O): $(B)
 # build folder
 $(B):
 	mkdir $(B)
+
+.PHONY: clean
+clean:
+	rm main.obj
