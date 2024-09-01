@@ -7,6 +7,10 @@ There are 2 variants of PDCurses available:
 
 The latter offers more stuff, but that's mainly what it's used for.
 
+## Important Note
+
+Both `.lib` files (PDCurses and PDCursesMod) were compiled as x64, and will not work if compiled in x86. If you do, MSVC will warn you about this, but you might not notice it in the sea of errors for missing PDCurses definitions.
+
 ## (Not so) Important Note 
 
 The `pdcutil.c` file of PDCursesMod's source (wincon) was changed to not call PlaySound() as this required linking with winmm (which I do not want nor need). The full file in question is included in PDCursesMod's folder, so you can plop it right in the source and compile it to be the same lib that is currently used.
