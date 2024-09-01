@@ -1,13 +1,13 @@
 CC	   = g++
 CFLAGS = -std=c++11 -Wall
 
-B	    = build
+B       = build
 TARGET  = ${B}/asciiPainter
 SRC	    = main.cpp
 AGNOS_A = ${B}/libagnos.a
 
-OUT  	= -o ${TARGET}
-LIBS 	= -lncurses -lagnos
+OUT     = -o ${TARGET}
+LIBS    = -lncurses -lagnos
 LINKDIR = -L${B}
 
 ${TARGET}: ${AGNOS_A}
