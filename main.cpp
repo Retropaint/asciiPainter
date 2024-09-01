@@ -41,6 +41,7 @@ bool isColorMode = false;
 bool isInsertMode = false;
 bool isFilling = false;
 bool saved = false;
+string message;
 
 int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f'};
 
@@ -259,6 +260,19 @@ void undo() {
 	if(LAST_ACTION.wasFill) undo();
 }
 
+void tryFloodFill(int x, int y, bool isColor) {
+	if(
+		y > ascii.size()-1        || 
+		x > ascii.at(y).length()  ||
+		(int)ascii.at(y)[x] == 0  || 
+		isColor && ascii.at(y)[x] == ' '
+	) {
+			message = "There's nothing here!";
+			return;
+	}
+	isFilling = true;
+}
+
 void getInput() {
 	int k = getch();
 	if(k == ESC) {
@@ -295,9 +309,10 @@ void getInput() {
 	
 	if(k == input[UNDO])		undo();
 	if(k == input[QUIT])		on = false;
-	if(k == input[FLOODFILL])	isFilling = true;
 	if(k == input[SAVENEW]) 	save(false);
 	if(k == input[SAVE])		save(true);
+
+	if(k == input[FLOODFILL]) tryFloodFill(cursorX, cursorY, isColorMode);
 		
 	if(k == input[ASCIICOLOR]) {
 		isColorMode = !isColorMode; 
@@ -325,12 +340,13 @@ void displayStatus() {
 	string insert =		(isInsertMode)			? " INSERT" : "";
 	string saved =		(savedFilename != "") 	? " SAVED AS " + savedFilename : "";
 	string filling =	(isFilling) 			? " ENTER KEY TO FILL" : "";
-
-	// empty it, so save status disappears
-	savedFilename = "";
-
+	
 	string finalStr = mode + isRepeat + insert + saved + filling;
+	mvaddstr(LINES-2, 0, message.c_str());
 	mvaddstr(LINES-1, 0, finalStr.c_str());
+
+	savedFilename = "";
+	message = "";
 	standend();
 }
 
