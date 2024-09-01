@@ -33,6 +33,10 @@ nmake -f Makefile.vc
 
 * `OG_PDCURSES:BOOL:[ON/OFF]` - Set to ON to use original PDCurses instead of PDCursesMod
 
+### nmake Parameters
+
+* `OG_PDCURSES=Y` - Use original PDCurses instead of PDCursesMod
+
 ## ASCII data
 As seen in the sample file, art is saved by separating the ASCII content (top) and the colorcoords (bottom).
 Colorcoords are saved as numbers 0-8 (only default terminal colors are supported for now).

@@ -2,18 +2,24 @@ CC		 = cl
 CFLAGS = /EHsc
 B			 = build
 
+# PDCurses
+!if defined(OG_PDCURSES)
+PDCURSES = /link /LIBPATH:.\deps\pdcurses pdcurses.lib
+!else
+PDCURSES = /link /LIBPATH:.\deps\pdcurses\pdcursesMod pdcursesMod.lib
+!endif
+
+# main
 TARGET  = $(B)/asciiPainter
 AGNOS_O = $(B)/agnos.obj
-
-# target
-SRC      = main.cpp
 OUTPUT   = -o $(B)/asciiPainter
-INCLUDES = /I.\deps\pdcurses\pdcursesMod 
-PDCURSES = /link /LIBPATH:.\deps\pdcurses\pdcursesMod pdcursesMod.lib
+INCLUDES = /I.\deps\pdcurses\pdcursesMod
 SYSLIBS  = user32.lib advapi32.lib
 LINKS    = $(AGNOS_O) $(PDCURSES) $(SYSLIBS)
 $(TARGET): $(AGNOS_O)
 	$(CC) $(CFLAGS) main.cpp $(OUTPUT) $(INCLUDES) $(LINKS)
+	@echo ""
+	@echo "Remember to run nmake clean!"
 
 # agnos
 SRC    = agnos/agnosWin32.cpp
