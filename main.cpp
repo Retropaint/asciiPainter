@@ -337,26 +337,34 @@ void getInput() {
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
-	string mode =		(isColorMode)			? "COLOR" : "ASCII";
-	string isRepeat =	(repeat != NONE)		? " REPEAT" : "";
-	string insert =		(isInsertMode)			? " INSERT" : "";
-	string saved =		(savedFilename != "") 	? " SAVED AS " + savedFilename : "";
-	string filling =	(isFilling) 			? " ENTER KEY TO FILL" : "";
-	
-	string finalStr = mode + isRepeat + insert + saved + filling;
-	mvaddstr(LINES-2, 0, message.c_str());
+	string mode =     (isColorMode)         ? "COLOR" : "ASCII";
+	string isRepeat = (repeat != NONE)      ? " REPEAT" : "";
+	string insert =   (isInsertMode)        ? " INSERT" : "";
+	string saved =    (savedFilename != "") ? " SAVED AS " + savedFilename : "";
+
+	string finalStr = mode + isRepeat + insert + saved;
 	mvaddstr(LINES-1, 0, finalStr.c_str());
 
-	savedFilename = "";
+	// custom message on top of status
+	mvaddstr(LINES-2, 0, message.c_str());
 	message = "";
+
+	savedFilename = "";
 	standend();
 }
 
 int main(int argc, char **argv) {
 	if(validateFile(argc, argv) == false) return 0;
+
+	if(argc == 2) loadAscii(filename, &ascii, &colorCoords);
+	else {
+		ascii.push_back(" ");
+		colorCoords.push_back("0");
+	}
+
+	loadConfig();
+
 	initscr();
-		
-	// configs
 	agnos::renameWindow("asciiPainter");
 	start_color();
 	use_default_colors();
@@ -364,29 +372,20 @@ int main(int argc, char **argv) {
 	cbreak();
 	agnos::setESCDELAY(0);
 	keypad(stdscr, true);
-	init_pair(1, COLOR_BLACK, 	-1);
-	init_pair(2, COLOR_RED, 	-1);
-	init_pair(3, COLOR_GREEN, 	-1);
-	init_pair(4, COLOR_YELLOW, 	-1);
-	init_pair(5, COLOR_BLUE, 	-1);
+	init_pair(1, COLOR_BLACK,   -1);
+	init_pair(2, COLOR_RED,     -1);
+	init_pair(3, COLOR_GREEN,   -1);
+	init_pair(4, COLOR_YELLOW,  -1);
+	init_pair(5, COLOR_BLUE,    -1);
 	init_pair(6, COLOR_MAGENTA, -1);
-	init_pair(7, COLOR_CYAN, 	-1);
-	init_pair(8, COLOR_WHITE,	-1);
-	init_pair(9, -1,			-1);
-
-	loadConfig();
-	
-	if(argc == 2) loadAscii(filename, &ascii, &colorCoords);
-	else {
-		ascii.push_back(" ");
-		colorCoords.push_back("0");
-	}
+	init_pair(7, COLOR_CYAN,    -1);
+	init_pair(8, COLOR_WHITE,   -1);
+	init_pair(9, -1,            -1);
 
 	// call these for first frame, since consequent draws happen after getInput() 
 	draw(0, 0, &ascii, &colorCoords);
 	displayStatus();
-
-	move(0,0);
+	move(0, 0);
 
 	while(on) {
 		getInput();
