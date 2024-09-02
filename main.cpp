@@ -265,11 +265,13 @@ void tryFloodFill(int x, int y, bool isColor) {
 		y > ascii.size()-1        || 
 		x > ascii.at(y).length()  ||
 		(int)ascii.at(y)[x] == 0  || 
-		isColor && ascii.at(y)[x] == ' '
+		(isColor && ascii.at(y)[x] == ' ')
 	) {
-			message = "There's nothing here!";
-			return;
+		message = "Can't fill here!";
+		return;
 	}
+
+	message = "Enter key to fill";
 	isFilling = true;
 }
 
