@@ -173,7 +173,7 @@ void save(bool shouldOverride) {
 }
 
 void edit(char k, int x = cursorX, int y = cursorY, int shouldRecord = true, bool changeColor = isColorMode) {
-	// fill in gaps with whitespaces
+	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	if(y > ascii.size()-1) {
 		const int REMAINING = y - (ascii.size()-1);
 		for(int i = 0; i < REMAINING; i++) {
