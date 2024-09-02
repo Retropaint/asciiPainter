@@ -1,6 +1,6 @@
-CC		 = cl
+CC     = cl
 CFLAGS = /EHsc
-B			 = build
+B      = build
 
 # PDCurses
 !if defined(OG_PDCURSES)
@@ -10,8 +10,8 @@ PDCURSES = /link /LIBPATH:.\deps\pdcurses\pdcursesMod pdcursesMod.lib
 !endif
 
 # main
-TARGET  = $(B)/asciiPainter
-AGNOS_O = $(B)/agnos.obj
+TARGET   = $(B)/asciiPainter
+AGNOS_O  = $(B)/agnos.obj
 OUTPUT   = -o $(B)/asciiPainter
 INCLUDES = /I.\deps\pdcurses\pdcursesMod
 SYSLIBS  = user32.lib advapi32.lib
