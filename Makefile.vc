@@ -34,4 +34,8 @@ $(B):
 
 .PHONY: clean
 clean:
-	rm main.obj
+	del main.obj
+
+.PHONY: distclean
+distclean:
+	"rmdir /s /q build"
