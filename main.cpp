@@ -197,10 +197,10 @@ void edit(char k, int x = cursorX, int y = cursorY, int shouldRecord = true, boo
 
 void floodFill(int x, int y, char key, char toReplace) {
 	if(
-		key == toReplace ||
+		key == toReplace    ||
 		(int)toReplace == 0 ||
-		(int)key == 0 ||
-		x == -1 ||
+		(int)key == 0       ||
+		x == -1             ||
 		y == -1
 	) return;
 
@@ -209,10 +209,10 @@ void floodFill(int x, int y, char key, char toReplace) {
 	// recursive
 	auto& content = (isColorMode) ? colorCoords : ascii;
 	int s = content.size();
-	if(content.at(y)[x-1] == toReplace) 			floodFill(x-1, y, key, toReplace);
-	if(content.at(y)[x+1] == toReplace) 			floodFill(x+1, y, key, toReplace);
-	if(y+1 < s && content.at(y+1)[x] == toReplace)	floodFill(x, y+1, key, toReplace);
-	if(y-1 > -1 && content.at(y-1)[x] == toReplace)	floodFill(x, y-1, key, toReplace);
+	if(content.at(y)[x-1] == toReplace)             floodFill(x-1, y, key, toReplace);
+	if(content.at(y)[x+1] == toReplace)             floodFill(x+1, y, key, toReplace);
+	if(y+1 < s && content.at(y+1)[x] == toReplace)  floodFill(x, y+1, key, toReplace);
+	if(y-1 > -1 && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
 }
 
 bool isArrowKey(int k) {
@@ -305,12 +305,12 @@ void getInput() {
 	if(k == input[MOVEUP]    || k == KEY_UP)    cursorY = fmax(cursorY-1, 0);
 	if(k == input[MOVERIGHT] || k == KEY_RIGHT) cursorX++;
 	if(k == input[MOVEDOWN]  || k == KEY_DOWN)  cursorY++;
-	if(k == input[MOVELEFT]  || k == KEY_LEFT) 	cursorX = fmax(cursorX-1, 0);
+	if(k == input[MOVELEFT]  || k == KEY_LEFT)  cursorX = fmax(cursorX-1, 0);
 	
-	if(k == input[UNDO])		undo();
-	if(k == input[QUIT])		on = false;
-	if(k == input[SAVENEW]) 	save(false);
-	if(k == input[SAVE])		save(true);
+	if(k == input[UNDO])    undo();
+	if(k == input[QUIT])    on = false;
+	if(k == input[SAVENEW]) save(false);
+	if(k == input[SAVE])    save(true);
 
 	if(k == input[FLOODFILL]) tryFloodFill(cursorX, cursorY, isColorMode);
 		
