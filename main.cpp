@@ -1,4 +1,5 @@
 #include "agnos/agnos.hpp"
+#include "main.hpp"
 #include <curses.h>
 #include <fstream>
 #include <iostream> 
@@ -7,60 +8,15 @@
 #include <cstring>
 #include <string>
 
-#define NONE 1
-#define ESC 27
-
-// input indices
-#define MOVEUP 0
-#define MOVERIGHT 1
-#define MOVEDOWN 2
-#define MOVELEFT 3
-#define REPEAT 4
-#define SAVENEW 5
-#define QUIT 6
-#define ASCIICOLOR 7
-#define INSERT 8
-#define FIRSTCOLOR 9
-#define LASTCOLOR 17
-#define SAVE 18
-#define UNDO 19
-#define FLOODFILL 20
-
 using std::string;
 using std::vector;
 
-vector<string> ascii;
-vector<string> colorCoords;
-string filename;
-string savedFilename;
-int cursorX = 0;
-int cursorY = 0;
-int repeat = NONE;
-bool on = true;
-bool isColorMode = false;
-bool isInsertMode = false;
-bool isFilling = false;
-bool saved = false;
-string message;
-
 int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f'};
-
-// storing actions for the undo feature
-struct action {
-	short int x, y;
-	char prevVal, nextVal;
-	bool wasFill, wasColor;
-
-	action(int _x, int _y, char _prevVal, char _nextVal, bool _wasFill, bool _wasColor) {
-		x=_x;
-		y=_y;
-		prevVal=_prevVal;
-		nextVal=_nextVal;
-		wasFill=_wasFill;
-		wasColor=_wasColor;
-	}
-};
+vector<string> ascii, colorCoords;
 vector<action> actions;
+string filename, savedFilename, message;
+struct vec2 cursor(0, 0);
+bool programRunning = true;
 
 void loadAscii(string filename, vector<string>* ascii, vector<string>* colorCoords) {
 	string raw;
@@ -86,7 +42,8 @@ void loadAscii(string filename, vector<string>* ascii, vector<string>* colorCoor
 
 void loadConfig() {
 	string raw;
-	std::fstream ifs("config.txt"); raw.assign((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+	std::fstream ifs("config.txt"); 
+	raw.assign((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
 
 	char* ptr = std::strtok(&raw[0], "\n");
 
@@ -172,7 +129,7 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-void edit(char k, int x = cursorX, int y = cursorY, int shouldRecord = true, bool changeColor = isColorMode) {
+void edit(char k, int x = cursor.x, int y = cursor.y, int shouldRecord = true, bool changeColor = modes::coloring) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	if(y > ascii.size()-1) {
 		const int REMAINING = y - (ascii.size()-1);
@@ -188,7 +145,7 @@ void edit(char k, int x = cursorX, int y = cursorY, int shouldRecord = true, boo
 	}
 
 	if(shouldRecord) {
-		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, isFilling, changeColor);
+		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, modes::filling, changeColor);
 		actions.push_back(newAction);
 	}
 
@@ -207,7 +164,7 @@ void floodFill(int x, int y, char key, char toReplace) {
 	edit(key, x, y, true);
 
 	// recursive
-	auto& content = (isColorMode) ? colorCoords : ascii;
+	auto& content = (modes::coloring) ? colorCoords : ascii;
 	int s = content.size();
 	if(content.at(y)[x-1] == toReplace)             floodFill(x-1, y, key, toReplace);
 	if(content.at(y)[x+1] == toReplace)             floodFill(x+1, y, key, toReplace);
@@ -250,8 +207,8 @@ void undo() {
 	// replace NULL char with space
 	if((int)LAST_ACTION.prevVal == 0) editChar = ' ';
 	
-	const bool IS_DUMMY = LAST_ACTION.x == -1;
-	if(!IS_DUMMY) edit(editChar, LAST_ACTION.x, LAST_ACTION.y, false, LAST_ACTION.wasColor);
+	const bool IS_DUMMY = LAST_ACTION.pos.x == -1;
+	if(!IS_DUMMY) edit(editChar, LAST_ACTION.pos.x, LAST_ACTION.pos.y, false, LAST_ACTION.wasColor);
 
 	const bool ACTIONS_LEFT = actions.size() > 1;
     if(ACTIONS_LEFT) actions.pop_back();
@@ -272,74 +229,74 @@ void tryFloodFill(int x, int y, bool isColor) {
 	}
 
 	message = "Enter key to fill";
-	isFilling = true;
+	modes::filling = true;
 }
 
 void getInput() {
 	int k = getch();
 	if(k == ESC) {
-		isInsertMode = false;
-		repeat = NONE;
+		modes::inserting = false;
+		modes::repeat = NONE;
 		return;
 	}
-	if(isInsertMode && !isArrowKey(k)) {
+	if(modes::inserting && !isArrowKey(k)) {
 		edit(k);
 		return;
 	}
-	if(isFilling) {
-		char toReplace = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
+	if(modes::filling) {
+		char toReplace = (modes::coloring ? colorCoords : ascii).at(cursor.y)[cursor.x];
 		// add dummy action, to separate simultaneous flood-fills
-		struct action floodAction(-1, -1, toReplace, k, false, isColorMode);
+		struct action floodAction(-1, -1, toReplace, k, false, modes::coloring);
 		actions.push_back(floodAction);
 
-		floodFill(cursorX, cursorY, (char)k, toReplace);
-		isFilling = false;
+		floodFill(cursor.x, cursor.y, (char)k, toReplace);
+		modes::filling = false;
 		return;
 	}
 
 	// in ASCII mode, enter any key that's not in config (including color keys)
-	if(!isColorMode && !isInputKey(k) && k != ESC) {
+	if(!modes::coloring && !isInputKey(k) && k != ESC) {
 		edit((char)k);
 		return;
 	}
 
 	// navigation
-	if(k == input[MOVEUP]    || k == KEY_UP)    cursorY = fmax(cursorY-1, 0);
-	if(k == input[MOVERIGHT] || k == KEY_RIGHT) cursorX++;
-	if(k == input[MOVEDOWN]  || k == KEY_DOWN)  cursorY++;
-	if(k == input[MOVELEFT]  || k == KEY_LEFT)  cursorX = fmax(cursorX-1, 0);
+	if(k == input[MOVEUP]    || k == KEY_UP)    cursor.y = fmax(cursor.y-1, 0);
+	if(k == input[MOVERIGHT] || k == KEY_RIGHT) cursor.x++;
+	if(k == input[MOVEDOWN]  || k == KEY_DOWN)  cursor.y++;
+	if(k == input[MOVELEFT]  || k == KEY_LEFT)  cursor.x = fmax(cursor.x-1, 0);
 	
 	if(k == input[UNDO])    undo();
-	if(k == input[QUIT])    on = false;
+	if(k == input[QUIT])    programRunning = false;
 	if(k == input[SAVENEW]) save(false);
 	if(k == input[SAVE])    save(true);
 
-	if(k == input[FLOODFILL]) tryFloodFill(cursorX, cursorY, isColorMode);
+	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, modes::coloring);
 		
 	if(k == input[ASCIICOLOR]) {
-		isColorMode = !isColorMode; 
-		repeat = NONE;
+		modes::coloring = !modes::coloring; 
+		modes::repeat = NONE;
 	}
 	if(k == input[INSERT]) {
-		isColorMode = false;
-		isInsertMode = !isInsertMode;
+		modes::coloring = false;
+		modes::inserting = !modes::inserting;
 	}
 	if(k == input[REPEAT]) {
-		if (repeat != NONE) repeat = NONE;
-		else repeat = (isColorMode ? colorCoords : ascii).at(cursorY)[cursorX];
+		if (modes::repeat != NONE) modes::repeat = NONE;
+		else modes::repeat = (modes::coloring ? colorCoords : ascii).at(cursor.y)[cursor.x];
 	}
 		
-	if(isColorMode) checkColorKeys(k);	
+	if(modes::coloring) checkColorKeys(k);	
 
-	if(repeat != NONE) edit((char)repeat);
+	if(modes::repeat != NONE) edit((char)modes::repeat);
 }
 
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
-	string mode =     (isColorMode)         ? "COLOR" : "ASCII";
-	string isRepeat = (repeat != NONE)      ? " REPEAT" : "";
-	string insert =   (isInsertMode)        ? " INSERT" : "";
+	string mode =     (modes::coloring)         ? "COLOR" : "ASCII";
+	string isRepeat = (modes::repeat != NONE)      ? " REPEAT" : "";
+	string insert =   (modes::inserting)        ? " INSERT" : "";
 	string saved =    (savedFilename != "") ? " SAVED AS " + savedFilename : "";
 
 	string finalStr = mode + isRepeat + insert + saved;
@@ -387,12 +344,12 @@ int main(int argc, char **argv) {
 	displayStatus();
 	move(0, 0);
 
-	while(on) {
+	while(programRunning) {
 		getInput();
 		erase();
 		draw(0, 0, &ascii, &colorCoords);
 		displayStatus();
-		move(cursorY, cursorX);
+		move(cursor.y, cursor.x);
 	}
 
 	agnos::closeWin();
