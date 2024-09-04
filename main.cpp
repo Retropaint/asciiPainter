@@ -229,7 +229,7 @@ void tryRepeat(int x, int y, bool isColor) {
 	}
 
 	char c = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
-	if((int)c == 0 || c == ' ') goto fillNullErr;
+	if((int)c == NULL_CHAR || c == ' ') goto fillNullErr;
 
 	repeatModeChar = c;
 }
@@ -310,10 +310,10 @@ void getInput() {
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
-	string mode =     (colorMode)         ? "COLOR" : "ASCII";
-	string isRepeat = (repeatModeChar != NULLCHAR)      ? " REPEAT" : "";
-	string insert =   (insertMode)        ? " INSERT" : "";
+	string mode =     (colorMode)           ? "COLOR" : "ASCII";
+	string insert =   (insertMode)          ? " INSERT" : "";
 	string saved =    (savedFilename != "") ? " SAVED AS " + savedFilename : "";
+	string isRepeat = (repeatModeChar != NULLCHAR) ? " REPEAT" : "";
 
 	string finalStr = mode + isRepeat + insert + saved;
 	mvaddstr(LINES-1, 0, finalStr.c_str());
