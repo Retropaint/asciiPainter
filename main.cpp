@@ -217,11 +217,27 @@ void undo() {
 	if(LAST_ACTION.wasFill) undo();
 }
 
+bool isOutOfBounds(int x, int y) {
+	return y > ascii.size()-1 || x > ascii.at(y).length();
+}
+
+void tryRepeat(int x, int y, bool isColor) {
+	if(isOutOfBounds(x, y)) {
+		fillNullErr:
+			message = "Nothing to repeat!";
+			return;
+	}
+
+	char c = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
+	if((int)c == 0 || c == ' ') goto fillNullErr;
+
+	repeatModeChar = c;
+}
+
 void tryFloodFill(int x, int y, bool isColor) {
 	if(
-		y > ascii.size()-1        || 
-		x > ascii.at(y).length()  ||
-		(int)ascii.at(y)[x] == 0  || 
+		isOutOfBounds(x, y)      ||
+		(int)ascii.at(y)[x] == 0 || 
 		(isColor && ascii.at(y)[x] == ' ')
 	) {
 		message = "Can't fill here!";
