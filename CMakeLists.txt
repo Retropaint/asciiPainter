@@ -43,7 +43,7 @@ add_subdirectory(agnos)
 list(APPEND libs agnos)
 
 # put those lists to use!
-target_include_directories( asciiPainter PRIVATE ${includes})
-target_include_directories( agnos PRIVATE ${includes})
-target_link_libraries(      asciiPainter PRIVATE ${libs})
-target_link_directories(    asciiPainter PRIVATE ${dirLinks})
+target_include_directories(asciiPainter PRIVATE ${includes})
+target_include_directories(agnos PRIVATE ${includes})
+target_link_libraries(     asciiPainter PRIVATE ${libs})
+target_link_directories(   asciiPainter PRIVATE ${dirLinks})
