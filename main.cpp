@@ -129,7 +129,7 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-void edit(char k, int x = cursor.x, int y = cursor.y, int shouldRecord = true, bool changeColor = modes::coloring) {
+void edit(char k, int x = cursor.x, int y = cursor.y, int shouldRecord = true, bool changeColor = colorMode) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	if(y > ascii.size()-1) {
 		const int REMAINING = y - (ascii.size()-1);
@@ -145,7 +145,7 @@ void edit(char k, int x = cursor.x, int y = cursor.y, int shouldRecord = true, b
 	}
 
 	if(shouldRecord) {
-		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, modes::filling, changeColor);
+		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, fillMode, changeColor);
 		actions.push_back(newAction);
 	}
 
@@ -164,7 +164,7 @@ void floodFill(int x, int y, char key, char toReplace) {
 	edit(key, x, y, true);
 
 	// recursive
-	auto& content = (modes::coloring) ? colorCoords : ascii;
+	auto& content = (colorMode) ? colorCoords : ascii;
 	int s = content.size();
 	if(content.at(y)[x-1] == toReplace)             floodFill(x-1, y, key, toReplace);
 	if(content.at(y)[x+1] == toReplace)             floodFill(x+1, y, key, toReplace);
@@ -229,33 +229,33 @@ void tryFloodFill(int x, int y, bool isColor) {
 	}
 
 	message = "Enter key to fill";
-	modes::filling = true;
+	fillMode = true;
 }
 
 void getInput() {
 	int k = getch();
 	if(k == ESC) {
-		modes::inserting = false;
-		modes::repeat = NONE;
+		insertMode = false;
+		repeatModeChar = NONE;
 		return;
 	}
-	if(modes::inserting && !isArrowKey(k)) {
+	if(insertMode && !isArrowKey(k)) {
 		edit(k);
 		return;
 	}
-	if(modes::filling) {
-		char toReplace = (modes::coloring ? colorCoords : ascii).at(cursor.y)[cursor.x];
+	if(fillMode) {
+		char toReplace = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
 		// add dummy action, to separate simultaneous flood-fills
-		struct action floodAction(-1, -1, toReplace, k, false, modes::coloring);
+		struct action floodAction(-1, -1, toReplace, k, false, colorMode);
 		actions.push_back(floodAction);
 
 		floodFill(cursor.x, cursor.y, (char)k, toReplace);
-		modes::filling = false;
+		fillMode = false;
 		return;
 	}
 
 	// in ASCII mode, enter any key that's not in config (including color keys)
-	if(!modes::coloring && !isInputKey(k) && k != ESC) {
+	if(!colorMode && !isInputKey(k) && k != ESC) {
 		edit((char)k);
 		return;
 	}
@@ -271,32 +271,32 @@ void getInput() {
 	if(k == input[SAVENEW]) save(false);
 	if(k == input[SAVE])    save(true);
 
-	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, modes::coloring);
+	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, colorMode);
 		
 	if(k == input[ASCIICOLOR]) {
-		modes::coloring = !modes::coloring; 
-		modes::repeat = NONE;
+		colorMode = !colorMode; 
+		repeatModeChar = NONE;
 	}
 	if(k == input[INSERT]) {
-		modes::coloring = false;
-		modes::inserting = !modes::inserting;
+		colorMode = false;
+		insertMode = !insertMode;
 	}
 	if(k == input[REPEAT]) {
-		if (modes::repeat != NONE) modes::repeat = NONE;
-		else modes::repeat = (modes::coloring ? colorCoords : ascii).at(cursor.y)[cursor.x];
+		if (repeatModeChar != NONE) repeatModeChar = NONE;
+		else repeatModeChar = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
 	}
 		
-	if(modes::coloring) checkColorKeys(k);	
+	if(colorMode) checkColorKeys(k);	
 
-	if(modes::repeat != NONE) edit((char)modes::repeat);
+	if(repeatModeChar != NONE) edit((char)repeatModeChar);
 }
 
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
-	string mode =     (modes::coloring)         ? "COLOR" : "ASCII";
-	string isRepeat = (modes::repeat != NONE)      ? " REPEAT" : "";
-	string insert =   (modes::inserting)        ? " INSERT" : "";
+	string mode =     (colorMode)         ? "COLOR" : "ASCII";
+	string isRepeat = (repeatModeChar != NONE)      ? " REPEAT" : "";
+	string insert =   (insertMode)        ? " INSERT" : "";
 	string saved =    (savedFilename != "") ? " SAVED AS " + savedFilename : "";
 
 	string finalStr = mode + isRepeat + insert + saved;

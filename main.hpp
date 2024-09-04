@@ -60,10 +60,8 @@ enum SELECTMODE {
 	FREE
 };
 
-namespace modes {
-	bool coloring;
-	bool inserting;
-	bool filling;
-	int repeat;
-	enum SELECTMODE selectMode;
-};
+bool colorMode;
+bool insertMode;
+bool fillMode;
+int  repeatModeChar;
+enum SELECTMODE selectMode;
