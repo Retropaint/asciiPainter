@@ -16,6 +16,7 @@
 #define SAVE 18
 #define UNDO 19
 #define FLOODFILL 20
+#define VISUAL 21
 
 struct vec2 {
 	short int x, y;

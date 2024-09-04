@@ -11,11 +11,12 @@
 using std::string;
 using std::vector;
 
-int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f'};
+int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f','v'};
 vector<string> ascii, colorCoords;
 vector<action> actions;
+vector<vec2> selection;
 string filename, savedFilename, message;
-struct vec2 cursor(0, 0);
+struct vec2 cursor(0, 0), prevCursor(0, 0);
 bool programRunning = true;
 
 void loadAscii(string filename, vector<string>* ascii, vector<string>* colorCoords) {
@@ -221,6 +222,10 @@ bool isOutOfBounds(int x, int y) {
 	return y > ascii.size()-1 || x > ascii.at(y).length();
 }
 
+bool didCursorMove() {
+	return cursor.x != prevCursor.x || cursor.y != prevCursor.y;
+}
+
 void tryRepeat(int x, int y, bool isColor) {
 	if(isOutOfBounds(x, y)) {
 		fillNullErr:
@@ -229,7 +234,7 @@ void tryRepeat(int x, int y, bool isColor) {
 	}
 
 	char c = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
-	if((int)c == NULL_CHAR || c == ' ') goto fillNullErr;
+	if((int)c == NULLCHAR || c == ' ') goto fillNullErr;
 
 	repeatModeChar = c;
 }
@@ -286,6 +291,11 @@ void getInput() {
 	if(k == input[QUIT])    programRunning = false;
 	if(k == input[SAVENEW]) save(false);
 	if(k == input[SAVE])    save(true);
+	if(k == input[VISUAL]) {
+		if(selectMode == RECT) {
+			selectMode = OFF;
+		} else selectMode = RECT;
+	}
 
 	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, colorMode);
 		
@@ -302,9 +312,12 @@ void getInput() {
 		else tryRepeat(cursor.x, cursor.y, k);
 	}
 		
-	if(colorMode) checkColorKeys(k);	
+	if(colorMode) checkColorKeys(k);
 
-	if(repeatModeChar != NULLCHAR) edit((char)repeatModeChar);
+	if(repeatModeChar != NULLCHAR && didCursorMove()) edit((char)repeatModeChar);
+
+	prevCursor.x = cursor.x;
+	prevCursor.y = cursor.y;
 }
 
 void displayStatus() {
@@ -313,9 +326,10 @@ void displayStatus() {
 	string mode =     (colorMode)           ? "COLOR" : "ASCII";
 	string insert =   (insertMode)          ? " INSERT" : "";
 	string saved =    (savedFilename != "") ? " SAVED AS " + savedFilename : "";
+	string visual =   (selectMode == RECT)  ? " VISUAL" : "";
 	string isRepeat = (repeatModeChar != NULLCHAR) ? " REPEAT" : "";
 
-	string finalStr = mode + isRepeat + insert + saved;
+	string finalStr = mode + isRepeat + insert + visual + saved;
 	mvaddstr(LINES-1, 0, finalStr.c_str());
 
 	// custom message on top of status
