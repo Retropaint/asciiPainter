@@ -1,4 +1,4 @@
-#define NONE 1
+#define NULLCHAR 0
 #define ESC 27
 
 // input indices
@@ -63,5 +63,5 @@ enum SELECTMODE {
 bool colorMode;
 bool insertMode;
 bool fillMode;
-int  repeatModeChar;
+int  repeatModeChar = NULLCHAR;
 enum SELECTMODE selectMode;

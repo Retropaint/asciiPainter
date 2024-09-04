@@ -236,7 +236,7 @@ void getInput() {
 	int k = getch();
 	if(k == ESC) {
 		insertMode = false;
-		repeatModeChar = NONE;
+		repeatModeChar = NULLCHAR;
 		return;
 	}
 	if(insertMode && !isArrowKey(k)) {
@@ -275,27 +275,27 @@ void getInput() {
 		
 	if(k == input[ASCIICOLOR]) {
 		colorMode = !colorMode; 
-		repeatModeChar = NONE;
+		repeatModeChar = NULLCHAR;
 	}
 	if(k == input[INSERT]) {
 		colorMode = false;
 		insertMode = !insertMode;
 	}
 	if(k == input[REPEAT]) {
-		if (repeatModeChar != NONE) repeatModeChar = NONE;
-		else repeatModeChar = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
+		if (repeatModeChar != NULLCHAR) repeatModeChar = NULLCHAR;
+		else tryRepeat(cursor.x, cursor.y, k);
 	}
 		
 	if(colorMode) checkColorKeys(k);	
 
-	if(repeatModeChar != NONE) edit((char)repeatModeChar);
+	if(repeatModeChar != NULLCHAR) edit((char)repeatModeChar);
 }
 
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
 	string mode =     (colorMode)         ? "COLOR" : "ASCII";
-	string isRepeat = (repeatModeChar != NONE)      ? " REPEAT" : "";
+	string isRepeat = (repeatModeChar != NULLCHAR)      ? " REPEAT" : "";
 	string insert =   (insertMode)        ? " INSERT" : "";
 	string saved =    (savedFilename != "") ? " SAVED AS " + savedFilename : "";
 
