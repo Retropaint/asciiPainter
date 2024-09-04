@@ -30,6 +30,11 @@ struct vec2 {
 		x = _x;
 		y = _y;
 	}
+
+	vec2(const struct vec2 &clone) {
+		x = clone.x;
+		y = clone.y;
+	}
 };
 
 struct action {
