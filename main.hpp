@@ -60,21 +60,21 @@ struct contentChar {
 struct action {
 	struct vec2 pos;
 	char prevVal, nextVal;
-	bool wasFill, wasColor;
+	bool repetitive, wasColor;
 
-	action(int _x, int _y, char _prevVal, char _nextVal, bool _wasFill, bool _wasColor) {
+	action(int _x, int _y, char _prevVal, char _nextVal, bool _repetitive, bool _wasColor) {
 		pos.x=_x;
 		pos.y=_y;
 		prevVal=_prevVal;
 		nextVal=_nextVal;
-		wasFill=_wasFill;
+		repetitive=_repetitive;
 		wasColor=_wasColor;
 	}
-	action(struct vec2 _pos, char _prevVal, char _nextVal, bool _wasFill, bool _wasColor) {
+	action(struct vec2 _pos, char _prevVal, char _nextVal, bool _repetitive, bool _wasColor) {
 		pos=_pos;
 		prevVal=_prevVal;
 		nextVal=_nextVal;
-		wasFill=_wasFill;
+		repetitive=_repetitive;
 		wasColor=_wasColor;
 	}
 };

@@ -130,7 +130,7 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true) {
+void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true, bool repetitive = false) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	if(y > ascii.size()-1) {
 		const int REMAINING = y - (ascii.size()-1);
@@ -146,7 +146,7 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 	}
 
 	if(shouldRecord) {
-		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, fillMode, changeColor);
+		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, repetitive, changeColor);
 		actions.push_back(newAction);
 	}
 
@@ -162,7 +162,7 @@ void floodFill(int x, int y, char key, char toReplace) {
 		y == -1
 	) return;
 
-	edit(key, x, y, colorMode, true);
+	edit(key, x, y, colorMode, true, true);
 
 	// recursive
 	auto& content = (colorMode) ? colorCoords : ascii;
@@ -215,7 +215,7 @@ void undo() {
     if(ACTIONS_LEFT) actions.pop_back();
 
 	// keep calling undo for flood-filled chars (stops at dummy action)
-	if(LAST_ACTION.undoPrev) undo();
+	if(LAST_ACTION.repetitive) undo();
 }
 
 bool isOutOfBounds(int x, int y) {
@@ -289,6 +289,13 @@ void checkSelection(int x, int y) {
 	}
 }
 
+// dummy actions are used to stop undone repetitive actions from bleeding into the previous one, and to separate sequential repetitive actions
+// must be called before the logic that will create repetitive actions
+void createDummyAction() {
+	struct action dummy(-1, -1, ' ', ' ', false, false);
+	actions.push_back(dummy);
+}
+
 void getInput() {
 	int k = getch();
 	if(k == ESC) {
@@ -302,10 +309,8 @@ void getInput() {
 	}
 	if(fillMode) {
 		char toReplace = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
-		// add dummy action, to separate simultaneous flood-fills
-		struct action floodAction(-1, -1, toReplace, k, false, colorMode);
-		actions.push_back(floodAction);
-
+		createDummyAction();
+		
 		floodFill(cursor.x, cursor.y, (char)k, toReplace);
 		fillMode = false;
 		return;
@@ -338,12 +343,13 @@ void getInput() {
 		}
 	}
 	if(k == input[PASTE]) {
+		createDummyAction();
 		for(int i = 0; i < selection.size(); i++) {
 			struct vec2 pos;
 			pos.x = selection[i].pos.x + cursor.x;
 			pos.y = selection[i].pos.y + cursor.y;
-			edit(selection[i].ascii, pos.x, pos.y, false);
-			edit(selection[i].color, pos.x, pos.y, true);
+			edit(selection[i].ascii, pos.x, pos.y, false, true, true);
+			edit(selection[i].color, pos.x, pos.y, true, true, true);
 		}
 	}
 
@@ -369,6 +375,7 @@ void getInput() {
 	if(selectMode != OFF) {
 		if(didCursorMove()) checkSelection(cursor.x, cursor.y);
 		if(k == input[YANK]) {
+			// use initial cursor's position as the origin point of pasted content
 			struct vec2 origin(selection[0].pos);
 			for(int i = 0; i < selection.size(); i++) {
 				selection[i].pos.x -= origin.x;
