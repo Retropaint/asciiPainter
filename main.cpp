@@ -130,7 +130,7 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-void edit(char k, int x = cursor.x, int y = cursor.y, int shouldRecord = true, bool changeColor = colorMode) {
+void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	if(y > ascii.size()-1) {
 		const int REMAINING = y - (ascii.size()-1);
@@ -162,7 +162,7 @@ void floodFill(int x, int y, char key, char toReplace) {
 		y == -1
 	) return;
 
-	edit(key, x, y, true);
+	edit(key, x, y, colorMode, true);
 
 	// recursive
 	auto& content = (colorMode) ? colorCoords : ascii;
@@ -209,13 +209,13 @@ void undo() {
 	if((int)LAST_ACTION.prevVal == 0) editChar = ' ';
 	
 	const bool IS_DUMMY = LAST_ACTION.pos.x == -1;
-	if(!IS_DUMMY) edit(editChar, LAST_ACTION.pos.x, LAST_ACTION.pos.y, false, LAST_ACTION.wasColor);
+	if(!IS_DUMMY) edit(editChar, LAST_ACTION.pos.x, LAST_ACTION.pos.y, LAST_ACTION.wasColor, false);
 
 	const bool ACTIONS_LEFT = actions.size() > 1;
     if(ACTIONS_LEFT) actions.pop_back();
 
 	// keep calling undo for flood-filled chars (stops at dummy action)
-	if(LAST_ACTION.wasFill) undo();
+	if(LAST_ACTION.undoPrev) undo();
 }
 
 bool isOutOfBounds(int x, int y) {
@@ -342,8 +342,8 @@ void getInput() {
 			struct vec2 pos;
 			pos.x = selection[i].pos.x + cursor.x;
 			pos.y = selection[i].pos.y + cursor.y;
-			edit(selection[i].ascii, pos.x, pos.y, true, false);
-			edit(selection[i].color, pos.x, pos.y, true, true);
+			edit(selection[i].ascii, pos.x, pos.y, false);
+			edit(selection[i].color, pos.x, pos.y, true);
 		}
 	}
 
