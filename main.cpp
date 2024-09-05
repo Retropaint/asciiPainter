@@ -11,10 +11,10 @@
 using std::string;
 using std::vector;
 
-int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f','v'};
+int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f','v','y','p'};
 vector<string> ascii, colorCoords;
 vector<action> actions;
-vector<vec2> selection;
+vector<contentChar> selection;
 string filename, savedFilename, message;
 struct vec2 cursor(0, 0), prevCursor(0, 0);
 bool programRunning = true;
@@ -219,7 +219,11 @@ void undo() {
 }
 
 bool isOutOfBounds(int x, int y) {
-	return y > ascii.size()-1 || x > ascii.at(y).length();
+	return y > ascii.size()-1 || x > ascii.at(y).length()-1;
+}
+
+bool isOutOfBounds(struct vec2 pos) {
+	return pos.y > ascii.size()-1 || pos.x > ascii.at(pos.y).length()-1;
 }
 
 bool didCursorMove() {
@@ -251,6 +255,38 @@ void tryFloodFill(int x, int y, bool isColor) {
 
 	message = "Enter key to fill";
 	fillMode = true;
+}
+
+void getChar(char& asciiChar, char& colorChar, int x, int y, char defaultAscii, char defaultColor) {
+	if(!isOutOfBounds(x, y)) {
+		asciiChar = ascii.at(y)[x];
+		colorChar = colorCoords.at(y)[x];
+	} else {
+		asciiChar = defaultAscii; 
+		colorChar = defaultColor; 
+	}
+}
+
+void checkSelection(int x, int y) {
+	if(selectMode == RECT) {
+		// resetting the rect is the easiest way to handle backtracking
+		selection.resize(1);
+
+		struct vec2 rectCursor(selection.at(0).pos.x, selection.at(0).pos.y);
+
+		// go thru each char horizontally, then go up or down if it's beyond cursor's x until it reaches the cursor
+		while(rectCursor.x != cursor.x || rectCursor.y != cursor.y) {
+			if(rectCursor.x != cursor.x) rectCursor.x += (cursor.x > rectCursor.x) ? 1 : -1;
+			else {
+				rectCursor.x = selection.at(0).pos.x;
+				rectCursor.y += (cursor.y > rectCursor.y) ? 1 : -1; 
+			}
+
+			char asciiChar, colorChar;
+			getChar(asciiChar, colorChar, rectCursor.x, rectCursor.y, ' ', '0');
+			selection.push_back(contentChar(rectCursor, asciiChar, colorChar));
+		}
+	}
 }
 
 void getInput() {
@@ -292,9 +328,23 @@ void getInput() {
 	if(k == input[SAVENEW]) save(false);
 	if(k == input[SAVE])    save(true);
 	if(k == input[VISUAL]) {
-		if(selectMode == RECT) {
-			selectMode = OFF;
-		} else selectMode = RECT;
+		if(selectMode == RECT) selectMode = OFF;
+		else {
+			char asciiChar, colorChar;
+			getChar(asciiChar, colorChar, cursor.x, cursor.y, ' ', '0');
+			if(selection.size() > 0) selection.clear();
+			selection.push_back(contentChar(cursor, asciiChar, colorChar));
+			selectMode = RECT;
+		}
+	}
+	if(k == input[PASTE]) {
+		for(int i = 0; i < selection.size(); i++) {
+			struct vec2 pos;
+			pos.x = selection[i].pos.x + cursor.x;
+			pos.y = selection[i].pos.y + cursor.y;
+			edit(selection[i].ascii, pos.x, pos.y, true, false);
+			edit(selection[i].color, pos.x, pos.y, true, true);
+		}
 	}
 
 	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, colorMode);
@@ -315,6 +365,18 @@ void getInput() {
 	if(colorMode) checkColorKeys(k);
 
 	if(repeatModeChar != NULLCHAR && didCursorMove()) edit((char)repeatModeChar);
+
+	if(selectMode != OFF) {
+		if(didCursorMove()) checkSelection(cursor.x, cursor.y);
+		if(k == input[YANK]) {
+			struct vec2 origin(selection[0].pos);
+			for(int i = 0; i < selection.size(); i++) {
+				selection[i].pos.x -= origin.x;
+				selection[i].pos.y -= origin.y;
+			}
+			selectMode = OFF;
+		}
+	}
 
 	prevCursor.x = cursor.x;
 	prevCursor.y = cursor.y;
@@ -338,6 +400,13 @@ void displayStatus() {
 
 	savedFilename = "";
 	standend();
+}
+
+void renderSelection() {
+	for(int i = 0; i < selection.size(); i++) {
+		struct vec2 sec = selection[i].pos;
+		mvchgat(sec.y, sec.x, 1, A_REVERSE, 0, NULL);
+	}
 }
 
 int main(int argc, char **argv) {
@@ -380,6 +449,10 @@ int main(int argc, char **argv) {
 		draw(0, 0, &ascii, &colorCoords);
 		displayStatus();
 		move(cursor.y, cursor.x);
+		if(selectMode != OFF) {
+			curs_set(0);
+			renderSelection();
+		} else curs_set(1);
 	}
 
 	agnos::closeWin();

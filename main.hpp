@@ -17,6 +17,8 @@
 #define UNDO 19
 #define FLOODFILL 20
 #define VISUAL 21
+#define YANK 22
+#define PASTE 23
 
 struct vec2 {
 	short int x, y;
@@ -34,6 +36,24 @@ struct vec2 {
 	vec2(const struct vec2 &clone) {
 		x = clone.x;
 		y = clone.y;
+	}
+};
+
+struct contentChar {
+	struct vec2 pos;
+	char ascii, color;
+
+	contentChar() {
+		pos.x = 0;
+		pos.y = 0;
+		ascii = 0;
+		color = 0;
+	}
+
+	contentChar(struct vec2 _pos, char _ascii, char _color) {
+		pos = _pos;
+		ascii = _ascii;
+		color = _color;
 	}
 };
 
