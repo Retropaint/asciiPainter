@@ -15,6 +15,7 @@ int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','
 vector<string> ascii, colorCoords;
 vector<action> actions;
 vector<contentChar> selection;
+vector<vec2> toBeFilled;
 string filename, savedFilename, message;
 struct vec2 cursor(0, 0), prevCursor(0, 0);
 bool programRunning = true;
@@ -81,6 +82,30 @@ bool validateFile(int argc, char **argv) {
 	return true;
 }
 
+bool isOutOfBounds(int x, int y) {
+	return y > ascii.size()-1 || x > ascii.at(y).length()-1;
+}
+
+bool isOutOfBounds(struct vec2 pos) {
+	return pos.y > ascii.size()-1 || pos.x > ascii.at(pos.y).length()-1;
+}
+
+bool isArrowKey(int k) {
+	return k == KEY_UP || k == KEY_RIGHT || k == KEY_DOWN || k == KEY_LEFT;
+}
+
+bool isInputKey(int k) {
+	if(isArrowKey(k)) return true;
+
+	for(int i = 0; i < sizeof(input)-1; i++) {
+		if(i >= FIRSTCOLOR && i <= LASTCOLOR) continue;
+		if(k == input[i]) return true;
+	}
+	return false;
+}
+
+
+
 void getColorCoord(int x, int y, vector<string>* colorCoords) {
 	switch(colorCoords->at(y)[x]) {
 		case '1': attron(COLOR_PAIR(1)); break;
@@ -91,6 +116,7 @@ void getColorCoord(int x, int y, vector<string>* colorCoords) {
 		case '6': attron(COLOR_PAIR(6)); break;
 		case '7': attron(COLOR_PAIR(7)); break;
 		case '8': attron(COLOR_PAIR(8)); break;
+		case '9': attron(COLOR_PAIR(9)); break;
 		default: standend(); break;
 	}
 }
@@ -153,40 +179,6 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 	(changeColor ? colorCoords : ascii).at(y)[x] = k;
 }
 
-void floodFill(int x, int y, char key, char toReplace) {
-	if(
-		key == toReplace    ||
-		(int)toReplace == 0 ||
-		(int)key == 0       ||
-		x == -1             ||
-		y == -1
-	) return;
-
-	edit(key, x, y, colorMode, true, true);
-
-	// recursive
-	auto& content = (colorMode) ? colorCoords : ascii;
-	int s = content.size();
-	if(content.at(y)[x-1] == toReplace)             floodFill(x-1, y, key, toReplace);
-	if(content.at(y)[x+1] == toReplace)             floodFill(x+1, y, key, toReplace);
-	if(y+1 < s && content.at(y+1)[x] == toReplace)  floodFill(x, y+1, key, toReplace);
-	if(y-1 > -1 && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace);
-}
-
-bool isArrowKey(int k) {
-	return k == KEY_UP || k == KEY_RIGHT || k == KEY_DOWN || k == KEY_LEFT;
-}
-
-bool isInputKey(int k) {
-	if(isArrowKey(k)) return true;
-
-	for(int i = 0; i < sizeof(input)-1; i++) {
-		if(i >= FIRSTCOLOR && i <= LASTCOLOR) continue;
-		if(k == input[i]) return true;
-	}
-	return false;
-}
-
 void checkColorKeys(int k) {
 	for(int i = FIRSTCOLOR; i < LASTCOLOR+1; i++) {
 		if(k == input[i]) {
@@ -195,6 +187,49 @@ void checkColorKeys(int k) {
 			break;
 		}
 	}
+}
+
+void floodFill(int x, int y, char key, char toReplace, bool isColor, vector<vec2>& toBeFilled, bool isFirst = true) {
+	if(
+		key == toReplace ||
+		(int)key == 0    ||
+		x == -1          ||
+		y == -1          ||
+		(toBeFilled.size() > 0 && toBeFilled.back().x == -1)
+	) return;
+
+	// if this point is beyond bounds, add dummy to indicate so (and stop the fill)
+	if(isOutOfBounds(x, y)) {
+		fillBoundsErr:
+			toBeFilled.push_back(vec2(-1, -1));
+			return;
+	}
+	auto& content = (colorMode) ? colorCoords : ascii;
+	int s = content.size();
+	// if this point is whitespace, check if touching bounds
+	if(content.at(y)[x] == ' ') {
+		if((int)content.at(y)[x-1] == NULLCHAR) goto fillBoundsErr;
+		if((int)content.at(y)[x+1] == NULLCHAR) goto fillBoundsErr;
+		if(y+1 < s  && (int)content.at(y+1)[x] == NULLCHAR) goto fillBoundsErr;
+		if(y-1 > -1 && (int)content.at(y-1)[x] == NULLCHAR) goto fillBoundsErr;
+	}
+
+	toBeFilled.push_back(vec2(x, y));
+
+	// check if to ignore points already in toBeFilled
+	bool checkLeft = true, checkRight = true, checkDown = true, checkUp = true;
+	for(int i = 0; i < toBeFilled.size(); i++) {
+		struct vec2 &pos = toBeFilled[i];
+		if(pos.x == x-1 && pos.y == y) checkLeft  = false;
+		if(pos.x == x+1 && pos.y == y) checkRight = false;
+		if(pos.x == x && pos.y == y+1) checkDown  = false;
+		if(pos.x == x && pos.y == y-1) checkUp    = false;
+	}
+	// recursive
+	if(checkLeft  && content.at(y)[x-1] == toReplace)             floodFill(x-1, y, key, toReplace, isColor, toBeFilled, false);
+	if(checkRight && content.at(y)[x+1] == toReplace)             floodFill(x+1, y, key, toReplace, isColor, toBeFilled, false);
+	if(checkDown  && y+1 < s  && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace, isColor, toBeFilled, false);
+	if(checkUp    && y-1 > -1 && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace, isColor, toBeFilled, false);
 }
 
 void undo() {
@@ -218,14 +253,6 @@ void undo() {
 	if(LAST_ACTION.repetitive) undo();
 }
 
-bool isOutOfBounds(int x, int y) {
-	return y > ascii.size()-1 || x > ascii.at(y).length()-1;
-}
-
-bool isOutOfBounds(struct vec2 pos) {
-	return pos.y > ascii.size()-1 || pos.x > ascii.at(pos.y).length()-1;
-}
-
 bool didCursorMove() {
 	return cursor.x != prevCursor.x || cursor.y != prevCursor.y;
 }
@@ -243,13 +270,23 @@ void tryRepeat(int x, int y, bool isColor) {
 	repeatModeChar = c;
 }
 
-void tryFloodFill(int x, int y, bool isColor) {
+void tryFloodFill(int x, int y, char key, bool isColor) {
+	toBeFilled.resize(0);
+
 	if(
 		isOutOfBounds(x, y)      ||
 		(int)ascii.at(y)[x] == 0 || 
 		(isColor && ascii.at(y)[x] == ' ')
 	) {
-		message = "Can't fill here!";
+		message = "This point is empty!";
+		return;
+	}
+
+	char toReplace = (isColor ? colorCoords : ascii).at(cursor.y)[cursor.x];
+	floodFill(cursor.x, cursor.y, (char)key, toReplace, colorMode, toBeFilled);
+
+	if(toBeFilled.back().x == -1) {
+		message = "This will fill to infinity! Is there a hole?";
 		return;
 	}
 
@@ -308,10 +345,12 @@ void getInput() {
 		return;
 	}
 	if(fillMode) {
-		char toReplace = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
 		createDummyAction();
-		
-		floodFill(cursor.x, cursor.y, (char)k, toReplace);
+
+		for(int i = 0; i < toBeFilled.size(); i++) {
+			edit((char)k, toBeFilled[i].x, toBeFilled[i].y, colorMode, true, true);
+		}
+
 		fillMode = false;
 		return;
 	}
@@ -353,7 +392,7 @@ void getInput() {
 		}
 	}
 
-	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, colorMode);
+	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, (char)k, colorMode);
 		
 	if(k == input[ASCIICOLOR]) {
 		colorMode = !colorMode; 
@@ -435,7 +474,7 @@ int main(int argc, char **argv) {
 	cbreak();
 	agnos::setESCDELAY(0);
 	keypad(stdscr, true);
-	init_pair(1, COLOR_BLACK,   -1);
+	init_pair(1, COLOR_BLACK,   COLOR_WHITE);
 	init_pair(2, COLOR_RED,     -1);
 	init_pair(3, COLOR_GREEN,   -1);
 	init_pair(4, COLOR_YELLOW,  -1);
@@ -443,7 +482,6 @@ int main(int argc, char **argv) {
 	init_pair(6, COLOR_MAGENTA, -1);
 	init_pair(7, COLOR_CYAN,    -1);
 	init_pair(8, COLOR_WHITE,   -1);
-	init_pair(9, -1,            -1);
 
 	// call these for first frame, since consequent draws happen after getInput() 
 	draw(0, 0, &ascii, &colorCoords);
