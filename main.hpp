@@ -19,6 +19,7 @@
 #define VISUAL 21
 #define YANK 22
 #define PASTE 23
+#define CUT 24
 
 struct vec2 {
 	short int x, y;

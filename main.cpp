@@ -11,10 +11,10 @@
 using std::string;
 using std::vector;
 
-int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f','v','y','p'};
+int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f','v','y','p','d'};
 vector<string> ascii, colorCoords;
 vector<action> actions;
-vector<contentChar> selection;
+vector<contentChar> pseudoSelection, selection;
 vector<vec2> toBeFilled;
 string filename, savedFilename, message;
 struct vec2 cursor(0, 0), prevCursor(0, 0);
@@ -304,7 +304,7 @@ void getChar(char& asciiChar, char& colorChar, int x, int y, char defaultAscii, 
 	}
 }
 
-void checkSelection(int x, int y) {
+void checkSelection(int x, int y, vector<contentChar>& selection) {
 	if(selectMode == RECT) {
 		// resetting the rect is the easiest way to handle backtracking
 		selection.resize(1);
@@ -338,6 +338,8 @@ void getInput() {
 	if(k == ESC) {
 		insertMode = false;
 		repeatModeChar = NULLCHAR;
+		selectMode = OFF;
+		pseudoSelection.clear();
 		return;
 	}
 	if(insertMode && !isArrowKey(k)) {
@@ -374,11 +376,12 @@ void getInput() {
 	if(k == input[VISUAL]) {
 		if(selectMode == RECT) selectMode = OFF;
 		else {
+			selectMode = RECT;
+			pseudoSelection.clear();
+
 			char asciiChar, colorChar;
 			getChar(asciiChar, colorChar, cursor.x, cursor.y, ' ', '0');
-			if(selection.size() > 0) selection.clear();
-			selection.push_back(contentChar(cursor, asciiChar, colorChar));
-			selectMode = RECT;
+			pseudoSelection.push_back(contentChar(cursor, asciiChar, colorChar));
 		}
 	}
 	if(k == input[PASTE]) {
@@ -390,8 +393,6 @@ void getInput() {
 			edit(selection[i].ascii, pos.x, pos.y, false, true, true);
 			edit(selection[i].color, pos.x, pos.y, true, true, true);
 		}
-		// remove selection anchor (first element)
-		selection.clear();
 	}
 
 	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, (char)k, colorMode);
@@ -414,13 +415,24 @@ void getInput() {
 	if(repeatModeChar != NULLCHAR && didCursorMove()) edit((char)repeatModeChar);
 
 	if(selectMode != OFF) {
-		if(didCursorMove()) checkSelection(cursor.x, cursor.y);
-		if(k == input[YANK]) {
+		if(didCursorMove()) checkSelection(cursor.x, cursor.y, pseudoSelection);
+		if(k == input[YANK] || k == input[CUT]) {
+			for(int i = 0; i < pseudoSelection.size(); i++) {
+				struct contentChar& s = pseudoSelection[i];
+				selection.push_back(contentChar(vec2(s.pos.x, s.pos.y), s.ascii, s.color));
+			}
+			pseudoSelection.clear();
+			if(k == input[CUT]) createDummyAction();
 			// use initial cursor's position as the origin point of pasted content
 			struct vec2 origin(selection[0].pos);
 			for(int i = 0; i < selection.size(); i++) {
-				selection[i].pos.x -= origin.x;
-				selection[i].pos.y -= origin.y;
+				struct contentChar& s = selection[i];
+				s.pos.x -= origin.x;
+				s.pos.y -= origin.y;
+				if(k == input[CUT]) {
+					edit(' ', s.pos.x, s.pos.y, false, true, true);		
+					edit(' ', s.pos.x, s.pos.y, true, true, true);		
+				}
 			}
 			selectMode = OFF;
 		}
@@ -450,7 +462,7 @@ void displayStatus() {
 	standend();
 }
 
-void renderSelection() {
+void renderSelection(vector<contentChar>& selection) {
 	for(int i = 0; i < selection.size(); i++) {
 		struct vec2 sec = selection[i].pos;
 		mvchgat(sec.y, sec.x, 1, A_REVERSE, 0, NULL);
@@ -498,7 +510,7 @@ int main(int argc, char **argv) {
 		move(cursor.y, cursor.x);
 		if(selectMode != OFF) {
 			curs_set(0);
-			renderSelection();
+			renderSelection(pseudoSelection);
 		} else curs_set(1);
 	}
 
