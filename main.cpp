@@ -390,6 +390,7 @@ void getInput() {
 			edit(selection[i].ascii, pos.x, pos.y, false, true, true);
 			edit(selection[i].color, pos.x, pos.y, true, true, true);
 		}
+		// remove selection anchor (first element)
 		selection.clear();
 	}
 
