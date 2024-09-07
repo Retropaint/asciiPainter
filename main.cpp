@@ -175,6 +175,9 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 	}
 
 	content.at(y)[x] = k;
+
+	// revert color to 0 if entered key was whitespace
+	if(!changeColor && k == ' ') colorCoords.at(y)[x] = 0;
 }
 
 void checkColorKeys(int k) {
@@ -275,8 +278,8 @@ void tryFloodFill(int x, int y, char key, bool isColor) {
 
 	if(
 		isOutOfBounds(x, y)      ||
-		(int)ascii.at(y)[x] == 0 || 
-		(isColor && ascii.at(y)[x] == ' ')
+		(int)ascii.at(y)[x] == 0 ||        // don't fill if point is NULL
+		(isColor && ascii.at(y)[x] == ' ') // whitespaces shouldn't have a color assigned, so don't accept them
 	) {
 		message.assign(infErr);
 		return;
