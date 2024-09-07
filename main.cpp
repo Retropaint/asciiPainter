@@ -83,11 +83,11 @@ bool validateFile(int argc, char **argv) {
 }
 
 bool isOutOfBounds(int x, int y) {
-	return y > ascii.size()-1 || x > ascii.at(y).length()-1;
+	return y > ascii.size()-1 || x > ascii.at(y).length()-1 || y < 0 || x < 0;
 }
 
 bool isOutOfBounds(struct vec2 pos) {
-	return pos.y > ascii.size()-1 || pos.x > ascii.at(pos.y).length()-1;
+	return isOutOfBounds(pos.x, pos.y);
 }
 
 bool isArrowKey(int k) {
@@ -329,6 +329,33 @@ void createDummyAction() {
 	actions.push_back(dummy);
 }
 
+void yank(bool isCut = false) {
+	selection.clear();
+
+	// confirm selection, by copying pseudo to normal
+	for(int i = 0; i < pseudoSelection.size(); i++) {
+		struct contentChar& s = pseudoSelection[i];
+		selection.push_back(contentChar(vec2(s.pos.x, s.pos.y), s.ascii, s.color));
+	}
+	pseudoSelection.clear();
+
+	// create dummy if cutting, since it's a repetitive action
+	if(isCut) createDummyAction();
+
+	// use initial cursor's position as the origin point of pasted content
+	struct vec2 origin(selection[0].pos);
+	for(int i = 0; i < selection.size(); i++) {
+		struct contentChar& s = selection[i];
+		if(isCut) {
+			edit(' ', s.pos.x, s.pos.y, false, true, true);		
+			edit(' ', s.pos.x, s.pos.y, true, true, true);		
+		}
+		s.pos.x -= origin.x;
+		s.pos.y -= origin.y;
+	}
+	selectMode = OFF;
+}
+
 void getInput() {
 	int k = getch();
 	if(k == ESC) {
@@ -381,11 +408,14 @@ void getInput() {
 		}
 	}
 	if(k == input[PASTE]) {
+		// pasting is a repetitive action
 		createDummyAction();
 		for(int i = 0; i < selection.size(); i++) {
 			struct vec2 pos;
 			pos.x = selection[i].pos.x + cursor.x;
 			pos.y = selection[i].pos.y + cursor.y;
+			if(pos.x < 0 || pos.y < 0 || selection[i].ascii == ' ') continue;
+
 			edit(selection[i].ascii, pos.x, pos.y, false, true, true);
 			edit(selection[i].color, pos.x, pos.y, true, true, true);
 		}
@@ -412,26 +442,7 @@ void getInput() {
 
 	if(selectMode != OFF) {
 		if(didCursorMove()) checkSelection(cursor.x, cursor.y, pseudoSelection);
-		if(k == input[YANK] || k == input[CUT]) {
-			for(int i = 0; i < pseudoSelection.size(); i++) {
-				struct contentChar& s = pseudoSelection[i];
-				selection.push_back(contentChar(vec2(s.pos.x, s.pos.y), s.ascii, s.color));
-			}
-			pseudoSelection.clear();
-			if(k == input[CUT]) createDummyAction();
-			// use initial cursor's position as the origin point of pasted content
-			struct vec2 origin(selection[0].pos);
-			for(int i = 0; i < selection.size(); i++) {
-				struct contentChar& s = selection[i];
-				s.pos.x -= origin.x;
-				s.pos.y -= origin.y;
-				if(k == input[CUT]) {
-					edit(' ', s.pos.x, s.pos.y, false, true, true);		
-					edit(' ', s.pos.x, s.pos.y, true, true, true);		
-				}
-			}
-			selectMode = OFF;
-		}
+		if(k == input[YANK] || k == input[CUT]) yank(k == input[CUT]);
 	}
 
 	prevCursor.x = cursor.x;
