@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <algorithm>
 
 using std::string;
 using std::vector;
@@ -156,6 +157,23 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
+void turnContentToRect() {
+	unsigned long max = 0;
+
+	// get max width
+	for(int i = 0; i < ascii.size(); i++) {
+		max = std::max(max, ascii.at(i).length());	
+	}
+
+	// match all lines with max width using whitespace and color 0
+	for(int i = 0; i < ascii.size(); i++) {
+		while(ascii.at(i).length() < max) {
+			ascii.at(i).append(1, ' ');
+			colorCoords.at(i).append(1, '0');
+		}
+	}
+}
+
 void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true, bool repetitive = false) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	while(y > ascii.size()-1) {
@@ -166,6 +184,7 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 		ascii.at(y).append(1, ' ');
 		colorCoords.at(y).append(1, '0');
 	}
+	turnContentToRect();
 
 	auto& content = changeColor ? colorCoords : ascii;
 
@@ -378,7 +397,6 @@ void getInput() {
 	}
 	if(fillMode) {
 		createDummyAction();
-
 		for(int i = 0; i < toBeFilled.size(); i++) {
 			edit((char)k, toBeFilled[i].x, toBeFilled[i].y, colorMode, true, true);
 		}
