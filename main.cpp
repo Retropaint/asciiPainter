@@ -158,17 +158,13 @@ void save(bool shouldOverride) {
 
 void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true, bool repetitive = false) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
-	if(y > ascii.size()-1) {
-		const int REMAINING = y - (ascii.size()-1);
-		for(int i = 0; i < REMAINING; i++) {
-			ascii.push_back(" ");
-			colorCoords.push_back("0");
-		}
+	while(y > ascii.size()-1) {
+		ascii.push_back(" ");
+		colorCoords.push_back("0");
 	}
-	if(x > ascii.at(y).length()-1) {
-		const unsigned int REMAINING = x - (ascii.at(y).length()-1);
-		ascii.at(y).append(REMAINING, ' ');
-		colorCoords.at(y).append(REMAINING, '0');
+	while(x > ascii.at(y).length()-1) {
+		ascii.at(y).append(1, ' ');
+		colorCoords.at(y).append(1, '0');
 	}
 
 	if(shouldRecord) {
