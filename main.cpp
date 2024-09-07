@@ -167,12 +167,14 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 		colorCoords.at(y).append(1, '0');
 	}
 
+	auto& content = changeColor ? colorCoords : ascii;
+
 	if(shouldRecord) {
-		struct action newAction(x, y, (changeColor ? colorCoords : ascii).at(y)[x], k, repetitive, changeColor);
+		struct action newAction(x, y, content.at(y)[x], k, repetitive, changeColor);
 		actions.push_back(newAction);
 	}
 
-	(changeColor ? colorCoords : ascii).at(y)[x] = k;
+	content.at(y)[x] = k;
 }
 
 void checkColorKeys(int k) {
@@ -200,14 +202,15 @@ void floodFill(int x, int y, char key, char toReplace, bool isColor, vector<vec2
 			toBeFilled.push_back(vec2(-1, -1));
 			return;
 	}
-	auto& content = (colorMode) ? colorCoords : ascii;
-	int s = content.size();
+	auto& content = colorMode ? colorCoords : ascii;
+	bool CANDOWN = y+1 < content.size();
+	bool CANUP = y-1 > -1;
 	// if this point is whitespace, check if touching bounds
 	if(content.at(y)[x] == ' ') {
 		if((int)content.at(y)[x-1] == NULLCHAR) goto fillBoundsErr;
 		if((int)content.at(y)[x+1] == NULLCHAR) goto fillBoundsErr;
-		if(y+1 < s  && (int)content.at(y+1)[x] == NULLCHAR) goto fillBoundsErr;
-		if(y-1 > -1 && (int)content.at(y-1)[x] == NULLCHAR) goto fillBoundsErr;
+		if(CANDOWN && (int)content.at(y+1)[x] == NULLCHAR) goto fillBoundsErr;
+		if(CANUP   && (int)content.at(y-1)[x] == NULLCHAR) goto fillBoundsErr;
 	}
 
 	toBeFilled.push_back(vec2(x, y));
@@ -222,10 +225,10 @@ void floodFill(int x, int y, char key, char toReplace, bool isColor, vector<vec2
 		if(pos.x == x && pos.y == y-1) checkUp    = false;
 	}
 	// recursive
-	if(checkLeft  && content.at(y)[x-1] == toReplace)             floodFill(x-1, y, key, toReplace, isColor, toBeFilled, false);
-	if(checkRight && content.at(y)[x+1] == toReplace)             floodFill(x+1, y, key, toReplace, isColor, toBeFilled, false);
-	if(checkDown  && y+1 < s  && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace, isColor, toBeFilled, false);
-	if(checkUp    && y-1 > -1 && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace, isColor, toBeFilled, false);
+	if(checkLeft  && content.at(y)[x-1] == toReplace)            floodFill(x-1, y, key, toReplace, isColor, toBeFilled, false);
+	if(checkRight && content.at(y)[x+1] == toReplace)            floodFill(x+1, y, key, toReplace, isColor, toBeFilled, false);
+	if(checkDown  && CANDOWN && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace, isColor, toBeFilled, false);
+	if(checkUp    && CANUP   && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace, isColor, toBeFilled, false);
 }
 
 void undo() {
@@ -268,13 +271,14 @@ void tryRepeat(int x, int y, bool isColor) {
 
 void tryFloodFill(int x, int y, char key, bool isColor) {
 	toBeFilled.resize(0);
+	string infErr = "This will fill to infinity! Is there a hole?";
 
 	if(
 		isOutOfBounds(x, y)      ||
 		(int)ascii.at(y)[x] == 0 || 
 		(isColor && ascii.at(y)[x] == ' ')
 	) {
-		message = "This point is empty!";
+		message.assign(infErr);
 		return;
 	}
 
@@ -282,7 +286,7 @@ void tryFloodFill(int x, int y, char key, bool isColor) {
 	floodFill(cursor.x, cursor.y, (char)key, toReplace, colorMode, toBeFilled);
 
 	if(toBeFilled.back().x == -1) {
-		message = "This will fill to infinity! Is there a hole?";
+		message.assign(infErr);
 		return;
 	}
 
