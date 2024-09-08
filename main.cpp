@@ -131,7 +131,42 @@ void draw(int x, int y, vector<string>* ascii, vector<string>* colorCoords) {
 	}
 }
 
+void clean() {
+	// fill missing colorCoords height or width with 0s
+	while(colorCoords.size() < ascii.size()) {
+		colorCoords.push_back("0");	
+		colorCoords.back().append(ascii.at(colorCoords.size()), '0');	
+	}
+
+	// replace NULL chars with 0 in colorCoords
+	// to-do: figure out why this happens at all
+	for(int y = 0; y < colorCoords.size(); y++) {
+		for(int x = 0; x < colorCoords.at(y).length(); x++) {
+			if((int)colorCoords.at(y)[x] == NULLCHAR) colorCoords.at(y)[x] = '0';
+		}
+	}
+}
+
+void turnContentToRect() {
+	unsigned long max = 0;
+
+	// get max width
+	for(int i = 0; i < ascii.size(); i++) {
+		max = std::max(max, ascii.at(i).length());	
+	}
+
+	// match all lines with max width using whitespace and color 0
+	for(int i = 0; i < ascii.size(); i++) {
+		while(ascii.at(i).length() < max) {
+			ascii.at(i).append(1, ' ');
+			colorCoords.at(i).append(1, '0');
+		}
+	}
+}
+
 void save(bool shouldOverride) {
+	clean();
+	turnContentToRect();
 	string asciiStr = "";
 	for(int i = 0; i < ascii.size(); i++) {
 		asciiStr.append(ascii.at(i) + "\n");
@@ -157,22 +192,7 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-void turnContentToRect() {
-	unsigned long max = 0;
 
-	// get max width
-	for(int i = 0; i < ascii.size(); i++) {
-		max = std::max(max, ascii.at(i).length());	
-	}
-
-	// match all lines with max width using whitespace and color 0
-	for(int i = 0; i < ascii.size(); i++) {
-		while(ascii.at(i).length() < max) {
-			ascii.at(i).append(1, ' ');
-			colorCoords.at(i).append(1, '0');
-		}
-	}
-}
 
 void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true, bool repetitive = false) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
@@ -184,7 +204,6 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 		ascii.at(y).append(1, ' ');
 		colorCoords.at(y).append(1, '0');
 	}
-	turnContentToRect();
 
 	auto& content = changeColor ? colorCoords : ascii;
 
@@ -197,6 +216,8 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 
 	// revert color to 0 if entered key was whitespace
 	if(!changeColor && k == ' ') colorCoords.at(y)[x] = '0';
+
+	turnContentToRect();
 }
 
 void checkColorKeys(int k) {
@@ -374,7 +395,7 @@ void yank(bool isCut = false) {
 		struct contentChar& s = selection[i];
 		if(isCut) {
 			edit(' ', s.pos.x, s.pos.y, false, true, true);		
-			edit(' ', s.pos.x, s.pos.y, true, true, true);		
+			edit('0', s.pos.x, s.pos.y, true, true, true);		
 		}
 		s.pos.x -= origin.x;
 		s.pos.y -= origin.y;
