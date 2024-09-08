@@ -3,7 +3,7 @@ That's right, with a lowercase a!
 
 asciiPainter is a simple CLI tool for creating and editing ASCII, with support for colors.
 
-## Dependencies
+## Build Dependencies
 Higher versions will work unless stated otherwise. Lower versions were not tested (but accepting issues for doing so).
 * Linux/MacOS:
   * `ncurses v6.5`
