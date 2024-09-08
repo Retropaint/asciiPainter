@@ -196,7 +196,7 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 	content.at(y)[x] = k;
 
 	// revert color to 0 if entered key was whitespace
-	if(!changeColor && k == ' ') colorCoords.at(y)[x] = 0;
+	if(!changeColor && k == ' ') colorCoords.at(y)[x] = '0';
 }
 
 void checkColorKeys(int k) {
