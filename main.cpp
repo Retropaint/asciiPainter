@@ -20,6 +20,8 @@ vector<vec2> toBeFilled;
 string filename, savedFilename, message;
 struct vec2 cursor(0, 0), prevCursor(0, 0);
 bool programRunning = true;
+char defaultAscii = ' ';
+char defaultColor = '0';
 
 void loadAscii(string filename, vector<string>* ascii, vector<string>* colorCoords) {
 	string raw;
@@ -53,7 +55,7 @@ void loadConfig() {
 	int key = 0;
 	while(ptr != NULL) {
 		// ignore comments and empty lines
-		if(ptr[0] == '#' || ptr[0] == ' ') {
+		if(ptr[0] == '#' || ptr[0] == defaultAscii) {
 			ptr = std::strtok(NULL, "\n");
 			continue;
 		}
@@ -115,7 +117,6 @@ void getColorCoord(int x, int y, vector<string>* colorCoords) {
 		case '6': attron(COLOR_PAIR(6)); break;
 		case '7': attron(COLOR_PAIR(7)); break;
 		case '8': attron(COLOR_PAIR(8)); break;
-		case '9': attron(COLOR_PAIR(9)); break;
 		default: standend(); break;
 	}
 }
@@ -134,14 +135,14 @@ void clean() {
 	while(colorCoords.size() < ascii.size()) {
 		colorCoords.push_back("0");	
 		const int ZEROLENGTH = ascii.at(colorCoords.size()).length();
-		colorCoords.back().append(ZEROLENGTH, '0');	
+		colorCoords.back().append(ZEROLENGTH, defaultColor);	
 	}
 
 	// replace NULL chars with 0 in colorCoords
 	// to-do: figure out why this happens at all
 	for(int y = 0; y < colorCoords.size(); y++) {
 		for(int x = 0; x < colorCoords.at(y).length(); x++) {
-			if((int)colorCoords.at(y)[x] == NULLCHAR) colorCoords.at(y)[x] = '0';
+			if((int)colorCoords.at(y)[x] == NULLCHAR) colorCoords.at(y)[x] = defaultColor;
 		}
 	}
 }
@@ -157,8 +158,8 @@ void turnContentToRect() {
 	// fill all lines with max width using whitespace and color 0
 	for(int i = 0; i < ascii.size(); i++) {
 		while(ascii.at(i).length() < max) {
-			ascii.at(i).append(1, ' ');
-			colorCoords.at(i).append(1, '0');
+			ascii.at(i).append(1, defaultAscii);
+			colorCoords.at(i).append(1, defaultColor);
 		}
 	}
 }
@@ -168,7 +169,7 @@ void trim() {
 	for(int y = ascii.size()-1; y > 0; y--) {
 		bool isEmptyLine = true;
 		for(int x = 0; x < ascii.at(y).length(); x++) {
-			if(ascii.at(y)[x] != ' ') {
+			if(ascii.at(y)[x] != defaultAscii) {
 				isEmptyLine = false;
 				break;
 			}
@@ -182,7 +183,7 @@ void trim() {
 
 	// remove trailing whitespaces
 	for(int y = 0; y < ascii.size(); y++) {
-		while(ascii.at(y).back() == ' ') {
+		while(ascii.at(y).back() == defaultAscii) {
 			ascii.at(y).pop_back();			
 			colorCoords.at(y).pop_back();			
 		}
@@ -223,11 +224,11 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	while(y > ascii.size()-1) {
 		ascii.push_back(" ");
-		colorCoords.push_back("0");
+		colorCoords.push_back(string() + defaultColor);
 	}
 	while(x > ascii.at(y).length()-1) {
-		ascii.at(y).append(1, ' ');
-		colorCoords.at(y).append(1, '0');
+		ascii.at(y).append(1, defaultAscii);
+		colorCoords.at(y).append(1, defaultColor);
 	}
 
 	auto& content = changeColor ? colorCoords : ascii;
@@ -240,7 +241,7 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 	content.at(y)[x] = k;
 
 	// revert color to 0 if entered key was whitespace
-	if(!changeColor && k == ' ') colorCoords.at(y)[x] = '0';
+	if(!changeColor && k == defaultAscii) colorCoords.at(y)[x] = defaultColor;
 }
 
 void checkColorKeys(int k) {
@@ -272,7 +273,7 @@ void floodFill(int x, int y, char key, char toReplace, bool isColor, vector<vec2
 	bool CANDOWN = y+1 < content.size();
 	bool CANUP = y-1 > -1;
 	// if this point is whitespace, check if touching bounds
-	if(content.at(y)[x] == ' ') {
+	if(content.at(y)[x] == defaultAscii) {
 		if((int)content.at(y)[x-1] == NULLCHAR) goto fillBoundsErr;
 		if((int)content.at(y)[x+1] == NULLCHAR) goto fillBoundsErr;
 		if(CANDOWN && (int)content.at(y+1)[x] == NULLCHAR) goto fillBoundsErr;
@@ -306,7 +307,7 @@ void undo() {
 	 	(whitespace might not behave the same across terminals, and undoing this still leaves ascii data as if space was entered) 
 	*/
 	// replace NULL char with space
-	if((int)LAST_ACTION.prevVal == 0) editChar = ' ';
+	if((int)LAST_ACTION.prevVal == 0) editChar = defaultAscii;
 	
 	const bool IS_DUMMY = LAST_ACTION.pos.x == -1;
 	if(!IS_DUMMY) edit(editChar, LAST_ACTION.pos.x, LAST_ACTION.pos.y, LAST_ACTION.wasColor, false);
@@ -330,7 +331,7 @@ void tryRepeat(int x, int y, bool isColor) {
 	}
 
 	char c = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
-	if((int)c == NULLCHAR || c == ' ') goto fillNullErr;
+	if((int)c == NULLCHAR || c == defaultAscii) goto fillNullErr;
 
 	repeatModeChar = c;
 }
@@ -342,7 +343,7 @@ void tryFloodFill(int x, int y, char key, bool isColor) {
 	if(
 		isOutOfBounds(x, y)      ||
 		(int)ascii.at(y)[x] == 0 ||        // don't fill if point is NULL
-		(isColor && ascii.at(y)[x] == ' ') // whitespaces shouldn't have a color assigned, so don't accept them
+		(isColor && ascii.at(y)[x] == defaultAscii) // whitespaces shouldn't have a color assigned, so don't accept them
 	) {
 		message.assign(infErr);
 		return;
@@ -386,7 +387,7 @@ void checkSelection(int x, int y, vector<contentChar>& selection) {
 			}
 
 			char asciiChar, colorChar;
-			getChar(asciiChar, colorChar, rectCursor.x, rectCursor.y, ' ', '0');
+			getChar(asciiChar, colorChar, rectCursor.x, rectCursor.y, defaultAscii, defaultColor);
 			selection.push_back(contentChar(rectCursor, asciiChar, colorChar));
 		}
 	}
@@ -417,8 +418,8 @@ void yank(bool isCut = false) {
 	for(int i = 0; i < selection.size(); i++) {
 		struct contentChar& s = selection[i];
 		if(isCut) {
-			edit(' ', s.pos.x, s.pos.y, false, true, true);
-			edit('0', s.pos.x, s.pos.y, true, true, true);
+			edit(defaultAscii, s.pos.x, s.pos.y, false, true, true);
+			edit(defaultColor, s.pos.x, s.pos.y, true, true, true);
 		}
 		s.pos.x -= origin.x;
 		s.pos.y -= origin.y;
@@ -472,7 +473,7 @@ void getInput() {
 			pseudoSelection.clear();
 
 			char asciiChar, colorChar;
-			getChar(asciiChar, colorChar, cursor.x, cursor.y, ' ', '0');
+			getChar(asciiChar, colorChar, cursor.x, cursor.y, defaultAscii, defaultColor);
 			pseudoSelection.push_back(contentChar(cursor, asciiChar, colorChar));
 		}
 	}
@@ -483,7 +484,7 @@ void getInput() {
 			struct vec2 pos;
 			pos.x = selection[i].pos.x + cursor.x;
 			pos.y = selection[i].pos.y + cursor.y;
-			if(pos.x < 0 || pos.y < 0 || selection[i].ascii == ' ') continue;
+			if(pos.x < 0 || pos.y < 0 || selection[i].ascii == defaultAscii) continue;
 
 			edit(selection[i].ascii, pos.x, pos.y, false, true, true);
 			edit(selection[i].color, pos.x, pos.y, true, true, true);
