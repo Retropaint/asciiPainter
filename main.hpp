@@ -21,6 +21,12 @@
 #define PASTE 23
 #define CUT 24
 
+enum CONTENTMODE {
+	ASCII,
+	COLORFG,
+	COLORBG
+};
+
 struct vec2 {
 	short int x, y;
 
@@ -61,22 +67,23 @@ struct contentChar {
 struct action {
 	struct vec2 pos;
 	char prevVal, nextVal;
-	bool repetitive, wasColor;
+	bool repetitive;
+	enum CONTENTMODE contentMode;
 
-	action(int _x, int _y, char _prevVal, char _nextVal, bool _repetitive, bool _wasColor) {
+	action(int _x, int _y, char _prevVal, char _nextVal, bool _repetitive, enum CONTENTMODE _contentMode) {
 		pos.x=_x;
 		pos.y=_y;
 		prevVal=_prevVal;
 		nextVal=_nextVal;
 		repetitive=_repetitive;
-		wasColor=_wasColor;
+		contentMode=_contentMode;
 	}
-	action(struct vec2 _pos, char _prevVal, char _nextVal, bool _repetitive, bool _wasColor) {
+	action(struct vec2 _pos, char _prevVal, char _nextVal, bool _repetitive, enum CONTENTMODE _contentMode) {
 		pos=_pos;
 		prevVal=_prevVal;
 		nextVal=_nextVal;
 		repetitive=_repetitive;
-		wasColor=_wasColor;
+		contentMode=_contentMode;
 	}
 };
 
@@ -87,7 +94,7 @@ enum SELECTMODE {
 	FREE
 };
 
-bool colorMode;
+enum CONTENTMODE contentMode;
 bool insertMode;
 bool fillMode;
 int  repeatModeChar = NULLCHAR;

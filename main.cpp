@@ -13,7 +13,7 @@ using std::string;
 using std::vector;
 
 int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f','v','y','p','d'};
-vector<string> ascii, colorCoords;
+vector<string> ascii, colorFg, colorBg;
 vector<action> actions;
 vector<contentChar> pseudoSelection, selection;
 vector<vec2> toBeFilled;
@@ -21,9 +21,10 @@ string filename, savedFilename, message;
 struct vec2 cursor(0, 0), prevCursor(0, 0);
 bool programRunning = true;
 char defaultAscii = ' ';
-char defaultColor = '0';
+char defaultColorFg = '0';
+char defaultColorBg = '0';
 
-void loadAscii(string filename, vector<string>* ascii, vector<string>* colorCoords) {
+void loadAscii(string filename, vector<string>* ascii, vector<string>* colorFg, vector<string>* colorBg) {
 	string raw;
 	std::fstream ifs(filename); 
 	raw.assign((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
@@ -36,11 +37,19 @@ void loadAscii(string filename, vector<string>* ascii, vector<string>* colorCoor
 		ptr = std::strtok(NULL, "\n");
 	}
 
-	// discard tilde, and proceed with colorCoords
+	// discard tilde, and proceed with colorFg
+	ptr = std::strtok(NULL, "\n"); 
+
+	while(ptr[0] != '~') {
+		colorFg->push_back(ptr);
+		ptr = std::strtok(NULL, "\n");
+	}
+
+	// discard tilde, and proceed with colorBg
 	ptr = std::strtok(NULL, "\n"); 
 
 	while(ptr != NULL) {
-		colorCoords->push_back(ptr);
+		colorBg->push_back(ptr);
 		ptr = std::strtok(NULL, "\n");
 	}
 }
@@ -107,8 +116,14 @@ bool isInputKey(int k) {
 	return false;
 }
 
-void getColorCoord(int x, int y, vector<string>* colorCoords) {
-	switch(colorCoords->at(y)[x]) {
+void getColorCoord(int x, int y, vector<string>* colorFg, vector<string>* colorBg) {
+	int CHAR_INT_OFFSET = 48;
+	int bgNum = (colorBg->at(y)[x]-CHAR_INT_OFFSET) * 8;
+	int fgNum = (colorFg->at(y)[x]-CHAR_INT_OFFSET);
+	message = std::to_string(bgNum) + " " + std::to_string(fgNum) + " " + std::to_string(bgNum + fgNum);
+	attron(COLOR_PAIR(fgNum + bgNum));
+	return;
+	switch(colorFg->at(y)[x]) {
 		case '1': attron(COLOR_PAIR(1)); break;
 		case '2': attron(COLOR_PAIR(2)); break;
 		case '3': attron(COLOR_PAIR(3)); break;
@@ -121,28 +136,29 @@ void getColorCoord(int x, int y, vector<string>* colorCoords) {
 	}
 }
 
-void draw(int x, int y, vector<string>* ascii, vector<string>* colorCoords) {
+void draw(int x, int y, vector<string>* ascii, vector<string>* colorFg, vector<string>* colorBg) {
 	for(int i = 0; i < ascii->size(); i++) {
 		for(int cx = 0; cx < ascii->at(i).length(); cx++) {
-			getColorCoord(cx, i, colorCoords);
+			getColorCoord(cx, i, colorFg, colorBg);
 			mvaddch(y+i, fmax(x+cx, 0), ascii->at(i).c_str()[cx]);
+			standend();
 		}
 	}
 }
 
 void clean() {
-	// fill missing colorCoords height or width with 0s
-	while(colorCoords.size() < ascii.size()) {
-		colorCoords.push_back("0");	
-		const int ZEROLENGTH = ascii.at(colorCoords.size()).length();
-		colorCoords.back().append(ZEROLENGTH, defaultColor);	
+	// fill missing colorFg height or width with 0s
+	while(colorFg.size() < ascii.size()) {
+		colorFg.push_back("0");	
+		const int ZEROLENGTH = ascii.at(colorFg.size()).length();
+		colorFg.back().append(ZEROLENGTH, defaultColorFg);	
 	}
 
-	// replace NULL chars with 0 in colorCoords
+	// replace NULL chars with 0 in colorFg
 	// to-do: figure out why this happens at all
-	for(int y = 0; y < colorCoords.size(); y++) {
-		for(int x = 0; x < colorCoords.at(y).length(); x++) {
-			if((int)colorCoords.at(y)[x] == NULLCHAR) colorCoords.at(y)[x] = defaultColor;
+	for(int y = 0; y < colorFg.size(); y++) {
+		for(int x = 0; x < colorFg.at(y).length(); x++) {
+			if((int)colorFg.at(y)[x] == NULLCHAR) colorFg.at(y)[x] = defaultColorFg;
 		}
 	}
 }
@@ -159,7 +175,8 @@ void turnContentToRect() {
 	for(int i = 0; i < ascii.size(); i++) {
 		while(ascii.at(i).length() < max) {
 			ascii.at(i).append(1, defaultAscii);
-			colorCoords.at(i).append(1, defaultColor);
+			colorFg.at(i).append(1, defaultColorFg);
+			colorBg.at(i).append(1, defaultColorBg);
 		}
 	}
 }
@@ -177,7 +194,8 @@ void trim() {
 		if(!isEmptyLine) break;
 		else {
 			ascii.erase(ascii.begin() + y);
-			colorCoords.erase(colorCoords.begin() + y);
+			colorFg.erase(colorFg.begin() + y);
+			colorBg.erase(colorBg.begin() + y);
 		}
 	}
 
@@ -185,7 +203,8 @@ void trim() {
 	for(int y = 0; y < ascii.size(); y++) {
 		while(ascii.at(y).back() == defaultAscii) {
 			ascii.at(y).pop_back();			
-			colorCoords.at(y).pop_back();			
+			colorFg.at(y).pop_back();			
+			colorBg.at(y).pop_back();			
 		}
 	}
 }
@@ -193,17 +212,21 @@ void trim() {
 void save(bool shouldOverride) {
 	trim();
 	turnContentToRect();
-	clean();
+	//clean();
 
 	string asciiStr = "";
 	for(int i = 0; i < ascii.size(); i++) {
 		asciiStr.append(ascii.at(i) + "\n");
 	}
 	asciiStr.append("~\n");
-	for(int i = 0; i < colorCoords.size(); i++) {
-		asciiStr.append(colorCoords.at(i) + "\n");
+	for(int i = 0; i < colorFg.size(); i++) {
+		asciiStr.append(colorFg.at(i) + "\n");
 	}
-  
+  	asciiStr.append("~\n");
+	for(int i = 0; i < colorBg.size(); i++) {
+		asciiStr.append(colorBg.at(i) + "\n");
+	}
+
 	savedFilename = filename;
 	if(!shouldOverride) {
 		// keep attempting to save file with name + number
@@ -220,41 +243,51 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true, bool repetitive = false) {
+vector<string>& contentOf(enum CONTENTMODE contentMode) {
+	switch(contentMode) {
+		case ASCII:   return ascii;
+		case COLORFG: return colorFg;
+		case COLORBG: return colorBg;
+	}
+}
+
+void edit(char k, int x = cursor.x, int y = cursor.y, enum CONTENTMODE contentMode = ASCII, int shouldRecord = true, bool repetitive = false) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	while(y > ascii.size()-1) {
 		ascii.push_back(" ");
-		colorCoords.push_back(string() + defaultColor);
+		colorFg.push_back(string() + defaultColorFg);
+		colorBg.push_back(string() + defaultColorBg);
 	}
 	while(x > ascii.at(y).length()-1) {
 		ascii.at(y).append(1, defaultAscii);
-		colorCoords.at(y).append(1, defaultColor);
+		colorFg.at(y).append(1, defaultColorFg);
+		colorBg.at(y).append(1, defaultColorBg);
 	}
 
-	auto& content = changeColor ? colorCoords : ascii;
+	auto& content = contentOf(contentMode);
 
 	if(shouldRecord) {
-		struct action newAction(x, y, content.at(y)[x], k, repetitive, changeColor);
+		struct action newAction(x, y, content.at(y)[x], k, repetitive, contentMode);
 		actions.push_back(newAction);
 	}
 
 	content.at(y)[x] = k;
 
 	// revert color to 0 if entered key was whitespace
-	if(!changeColor && k == defaultAscii) colorCoords.at(y)[x] = defaultColor;
+	if(contentMode != ASCII && k == defaultAscii) colorFg.at(y)[x] = defaultColorFg;
 }
 
 void checkColorKeys(int k) {
 	for(int i = FIRSTCOLOR; i < LASTCOLOR+1; i++) {
 		if(k == input[i]) {
 			const int NUM_CHAR_OFFSET = 40;
-			edit((char)(i + NUM_CHAR_OFFSET));
+			edit((char)(i + NUM_CHAR_OFFSET), cursor.x, cursor.y, contentMode);
 			break;
 		}
 	}
 }
 
-void floodFill(int x, int y, char key, char toReplace, bool isColor, vector<vec2>& toBeFilled, bool isFirst = true) {
+void floodFill(int x, int y, char key, char toReplace, enum CONTENTMODE contentMode, vector<vec2>& toBeFilled, bool isFirst = true) {
 	if(
 		key == toReplace ||
 		(int)key == 0    ||
@@ -269,7 +302,7 @@ void floodFill(int x, int y, char key, char toReplace, bool isColor, vector<vec2
 			toBeFilled.push_back(vec2(-1, -1));
 			return;
 	}
-	auto& content = colorMode ? colorCoords : ascii;
+	auto& content = contentOf(contentMode);
 	bool CANDOWN = y+1 < content.size();
 	bool CANUP = y-1 > -1;
 	// if this point is whitespace, check if touching bounds
@@ -292,10 +325,10 @@ void floodFill(int x, int y, char key, char toReplace, bool isColor, vector<vec2
 		if(pos.x == x && pos.y == y-1) checkUp    = false;
 	}
 	// recursive
-	if(checkLeft  && content.at(y)[x-1] == toReplace)            floodFill(x-1, y, key, toReplace, isColor, toBeFilled, false);
-	if(checkRight && content.at(y)[x+1] == toReplace)            floodFill(x+1, y, key, toReplace, isColor, toBeFilled, false);
-	if(checkDown  && CANDOWN && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace, isColor, toBeFilled, false);
-	if(checkUp    && CANUP   && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace, isColor, toBeFilled, false);
+	if(checkLeft  && content.at(y)[x-1] == toReplace)            floodFill(x-1, y, key, toReplace, contentMode, toBeFilled, false);
+	if(checkRight && content.at(y)[x+1] == toReplace)            floodFill(x+1, y, key, toReplace, contentMode, toBeFilled, false);
+	if(checkDown  && CANDOWN && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace, contentMode, toBeFilled, false);
+	if(checkUp    && CANUP   && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace, contentMode, toBeFilled, false);
 }
 
 void undo() {
@@ -310,7 +343,7 @@ void undo() {
 	if((int)LAST_ACTION.prevVal == 0) editChar = defaultAscii;
 	
 	const bool IS_DUMMY = LAST_ACTION.pos.x == -1;
-	if(!IS_DUMMY) edit(editChar, LAST_ACTION.pos.x, LAST_ACTION.pos.y, LAST_ACTION.wasColor, false);
+	if(!IS_DUMMY) edit(editChar, LAST_ACTION.pos.x, LAST_ACTION.pos.y, LAST_ACTION.contentMode, false);
 
 	const bool ACTIONS_LEFT = actions.size() > 1;
     if(ACTIONS_LEFT) actions.pop_back();
@@ -323,14 +356,14 @@ bool didCursorMove() {
 	return cursor.x != prevCursor.x || cursor.y != prevCursor.y;
 }
 
-void tryRepeat(int x, int y, bool isColor) {
+void tryRepeat(int x, int y, enum CONTENTMODE contentMode) {
 	if(isOutOfBounds(x, y)) {
 		fillNullErr:
 			message = "Nothing to repeat!";
 			return;
 	}
 
-	char c = (colorMode ? colorCoords : ascii).at(cursor.y)[cursor.x];
+	char c = contentOf(contentMode).at(cursor.y)[cursor.x];
 	if((int)c == NULLCHAR || c == defaultAscii) goto fillNullErr;
 
 	repeatModeChar = c;
@@ -349,8 +382,8 @@ void tryFloodFill(int x, int y, char key, bool isColor) {
 		return;
 	}
 
-	char toReplace = (isColor ? colorCoords : ascii).at(cursor.y)[cursor.x];
-	floodFill(cursor.x, cursor.y, (char)key, toReplace, colorMode, toBeFilled);
+	char toReplace = (isColor ? colorFg : ascii).at(cursor.y)[cursor.x];
+	floodFill(cursor.x, cursor.y, (char)key, toReplace, contentMode, toBeFilled);
 
 	if(toBeFilled.back().x == -1) {
 		message.assign(infErr);
@@ -361,13 +394,13 @@ void tryFloodFill(int x, int y, char key, bool isColor) {
 	fillMode = true;
 }
 
-void getChar(char& asciiChar, char& colorChar, int x, int y, char defaultAscii, char defaultColor) {
+void getChar(char& asciiChar, char& colorChar, int x, int y, char defaultAscii, char defaultColorFg) {
 	if(!isOutOfBounds(x, y)) {
 		asciiChar = ascii.at(y)[x];
-		colorChar = colorCoords.at(y)[x];
+		colorChar = colorFg.at(y)[x];
 	} else {
 		asciiChar = defaultAscii; 
-		colorChar = defaultColor; 
+		colorChar = defaultColorFg; 
 	}
 }
 
@@ -387,7 +420,7 @@ void checkSelection(int x, int y, vector<contentChar>& selection) {
 			}
 
 			char asciiChar, colorChar;
-			getChar(asciiChar, colorChar, rectCursor.x, rectCursor.y, defaultAscii, defaultColor);
+			getChar(asciiChar, colorChar, rectCursor.x, rectCursor.y, defaultAscii, defaultColorFg);
 			selection.push_back(contentChar(rectCursor, asciiChar, colorChar));
 		}
 	}
@@ -396,7 +429,7 @@ void checkSelection(int x, int y, vector<contentChar>& selection) {
 // dummy actions are used to stop undone repetitive actions from bleeding into the previous one, and to separate sequential repetitive actions
 // must be called before the logic that will create repetitive actions
 void createDummyAction() {
-	struct action dummy(-1, -1, ' ', ' ', false, false);
+	struct action dummy(-1, -1, ' ', ' ', false, ASCII);
 	actions.push_back(dummy);
 }
 
@@ -418,8 +451,8 @@ void yank(bool isCut = false) {
 	for(int i = 0; i < selection.size(); i++) {
 		struct contentChar& s = selection[i];
 		if(isCut) {
-			edit(defaultAscii, s.pos.x, s.pos.y, false, true, true);
-			edit(defaultColor, s.pos.x, s.pos.y, true, true, true);
+			edit(defaultAscii, s.pos.x, s.pos.y, ASCII, true, true);
+			edit(defaultColorFg, s.pos.x, s.pos.y, COLORFG, true, true);
 		}
 		s.pos.x -= origin.x;
 		s.pos.y -= origin.y;
@@ -443,7 +476,7 @@ void getInput() {
 	if(fillMode) {
 		createDummyAction();
 		for(int i = 0; i < toBeFilled.size(); i++) {
-			edit((char)k, toBeFilled[i].x, toBeFilled[i].y, colorMode, true, true);
+			edit((char)k, toBeFilled[i].x, toBeFilled[i].y, contentMode, true, true);
 		}
 
 		fillMode = false;
@@ -451,7 +484,7 @@ void getInput() {
 	}
 
 	// in ASCII mode, enter any key that's not in config (including color keys)
-	if(!colorMode && !isInputKey(k) && k != ESC) {
+	if(contentMode == ASCII && !isInputKey(k) && k != ESC) {
 		edit((char)k);
 		return;
 	}
@@ -473,7 +506,7 @@ void getInput() {
 			pseudoSelection.clear();
 
 			char asciiChar, colorChar;
-			getChar(asciiChar, colorChar, cursor.x, cursor.y, defaultAscii, defaultColor);
+			getChar(asciiChar, colorChar, cursor.x, cursor.y, defaultAscii, defaultColorFg);
 			pseudoSelection.push_back(contentChar(cursor, asciiChar, colorChar));
 		}
 	}
@@ -486,27 +519,31 @@ void getInput() {
 			pos.y = selection[i].pos.y + cursor.y;
 			if(pos.x < 0 || pos.y < 0 || selection[i].ascii == defaultAscii) continue;
 
-			edit(selection[i].ascii, pos.x, pos.y, false, true, true);
-			edit(selection[i].color, pos.x, pos.y, true, true, true);
+			edit(selection[i].ascii, pos.x, pos.y, ASCII, true, true);
+			edit(selection[i].color, pos.x, pos.y, COLORFG, true, true);
 		}
 	}
 
-	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, (char)k, colorMode);
+	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, (char)k, contentMode);
 		
 	if(k == input[ASCIICOLOR]) {
-		colorMode = !colorMode; 
+		switch(contentMode) { 
+			case ASCII:   contentMode = COLORFG; break;
+			case COLORFG: contentMode = COLORBG; break;
+			case COLORBG: contentMode = ASCII;   break;
+		}
 		repeatModeChar = NULLCHAR;
 	}
 	if(k == input[INSERT]) {
-		colorMode = false;
+		contentMode = ASCII;
 		insertMode = !insertMode;
 	}
 	if(k == input[REPEAT]) {
 		if (repeatModeChar != NULLCHAR) repeatModeChar = NULLCHAR;
-		else tryRepeat(cursor.x, cursor.y, k);
+		else tryRepeat(cursor.x, cursor.y, contentMode);
 	}
 		
-	if(colorMode) checkColorKeys(k);
+	if(contentMode != ASCII) checkColorKeys(k);
 
 	if(repeatModeChar != NULLCHAR && didCursorMove()) edit((char)repeatModeChar);
 
@@ -522,7 +559,13 @@ void getInput() {
 void displayStatus() {
 	attron(COLOR_PAIR(8));
 
-	string mode =     (colorMode)           ? "COLOR" : "ASCII";
+	string mode;
+	switch(contentMode) {
+		case ASCII:   mode = "ASCII";    break;
+		case COLORFG: mode = "COLOR_FG"; break;
+		case COLORBG: mode = "COLOR_BG"; break;
+	}
+
 	string insert =   (insertMode)          ? " INSERT" : "";
 	string saved =    (savedFilename != "") ? " SAVED AS " + savedFilename : "";
 	string visual =   (selectMode == RECT)  ? " VISUAL" : "";
@@ -572,10 +615,11 @@ void createColorPairs() {
 int main(int argc, char **argv) {
 	if(validateFile(argc, argv) == false) return 0;
 
-	if(argc == 2) loadAscii(filename, &ascii, &colorCoords);
+	if(argc == 2) loadAscii(filename, &ascii, &colorFg, &colorBg);
 	else {
 		ascii.push_back(" ");
-		colorCoords.push_back("0");
+		colorFg.push_back("0");
+		colorBg.push_back("0");
 	}
 
 	loadConfig();
@@ -591,14 +635,14 @@ int main(int argc, char **argv) {
 	createColorPairs();	
 
 	// call these for first frame, since subsequent draws happen after getInput() 
-	draw(0, 0, &ascii, &colorCoords);
+	draw(0, 0, &ascii, &colorFg, &colorBg);
 	displayStatus();
 	move(0, 0);
 
 	while(programRunning) {
 		getInput();
 		erase();
-		draw(0, 0, &ascii, &colorCoords);
+		draw(0, 0, &ascii, &colorFg, &colorBg);
 		displayStatus();
 		move(cursor.y, cursor.x);
 		if(selectMode != OFF) {
