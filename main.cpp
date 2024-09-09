@@ -573,7 +573,7 @@ int main(int argc, char **argv) {
 	init_pair(7, COLOR_CYAN,    -1);
 	init_pair(8, COLOR_WHITE,   -1);
 
-	// call these for first frame, since consequent draws happen after getInput() 
+	// call these for first frame, since subsequent draws happen after getInput() 
 	draw(0, 0, &ascii, &colorCoords);
 	displayStatus();
 	move(0, 0);
