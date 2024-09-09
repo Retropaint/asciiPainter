@@ -118,22 +118,9 @@ bool isInputKey(int k) {
 
 void getColorCoord(int x, int y, vector<string>* colorFg, vector<string>* colorBg) {
 	int CHAR_INT_OFFSET = 48;
-	int bgNum = (colorBg->at(y)[x]-CHAR_INT_OFFSET) * 8;
-	int fgNum = (colorFg->at(y)[x]-CHAR_INT_OFFSET);
-	message = std::to_string(bgNum) + " " + std::to_string(fgNum) + " " + std::to_string(bgNum + fgNum);
+	int fgNum = (colorFg->at(y)[x] - CHAR_INT_OFFSET) * 9;
+	int bgNum = (colorBg->at(y)[x] - CHAR_INT_OFFSET);
 	attron(COLOR_PAIR(fgNum + bgNum));
-	return;
-	switch(colorFg->at(y)[x]) {
-		case '1': attron(COLOR_PAIR(1)); break;
-		case '2': attron(COLOR_PAIR(2)); break;
-		case '3': attron(COLOR_PAIR(3)); break;
-		case '4': attron(COLOR_PAIR(4)); break;
-		case '5': attron(COLOR_PAIR(5)); break;
-		case '6': attron(COLOR_PAIR(6)); break;
-		case '7': attron(COLOR_PAIR(7)); break;
-		case '8': attron(COLOR_PAIR(8)); break;
-		default: standend(); break;
-	}
 }
 
 void draw(int x, int y, vector<string>* ascii, vector<string>* colorFg, vector<string>* colorBg) {
@@ -557,7 +544,7 @@ void getInput() {
 }
 
 void displayStatus() {
-	attron(COLOR_PAIR(8));
+	attron(COLOR_PAIR(0));
 
 	string mode;
 	switch(contentMode) {
@@ -591,23 +578,24 @@ void renderSelection(vector<contentChar>& selection) {
 
 int getColorNum(int num) {
 	switch(num) {
-		case 0:  return COLOR_BLACK;
+		case 0:  return -1;
 		case 1:  return COLOR_RED;
 		case 2:  return COLOR_GREEN;
 		case 3:  return COLOR_YELLOW;
 		case 4:  return COLOR_BLUE;
 		case 5:  return COLOR_MAGENTA;
 		case 6:  return COLOR_CYAN;
-		case 7:  return COLOR_WHITE;
-		default: return -1;
+		case 7:  return COLOR_BLACK;
+		default: return COLOR_WHITE;
 	}
 }
 
 void createColorPairs() {
-	int MAXCOLORS = 8;
+	int MAXCOLORS = 9;
 	for(int i = 0; i < MAXCOLORS; i++) {
 		for(int j = 0; j < MAXCOLORS; j++) {
-			init_pair((j + i*MAXCOLORS)+1, getColorNum(j), getColorNum(i-1));
+			int pairNum = j + i*MAXCOLORS;
+			init_pair(pairNum, getColorNum(i), getColorNum(j));
 		}
 	}
 }
@@ -633,7 +621,7 @@ int main(int argc, char **argv) {
 	agnos::setESCDELAY(0);
 	keypad(stdscr, true);
 	createColorPairs();	
-
+	
 	// call these for first frame, since subsequent draws happen after getInput() 
 	draw(0, 0, &ascii, &colorFg, &colorBg);
 	displayStatus();
