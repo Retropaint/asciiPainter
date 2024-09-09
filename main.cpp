@@ -105,8 +105,6 @@ bool isInputKey(int k) {
 	return false;
 }
 
-
-
 void getColorCoord(int x, int y, vector<string>* colorCoords) {
 	switch(colorCoords->at(y)[x]) {
 		case '1': attron(COLOR_PAIR(1)); break;
@@ -135,7 +133,8 @@ void clean() {
 	// fill missing colorCoords height or width with 0s
 	while(colorCoords.size() < ascii.size()) {
 		colorCoords.push_back("0");	
-		colorCoords.back().append(ascii.at(colorCoords.size()), '0');	
+		const int ZEROLENGTH = ascii.at(colorCoords.size()).length();
+		colorCoords.back().append(ZEROLENGTH, '0');	
 	}
 
 	// replace NULL chars with 0 in colorCoords
@@ -155,7 +154,7 @@ void turnContentToRect() {
 		max = std::max(max, ascii.at(i).length());	
 	}
 
-	// match all lines with max width using whitespace and color 0
+	// fill all lines with max width using whitespace and color 0
 	for(int i = 0; i < ascii.size(); i++) {
 		while(ascii.at(i).length() < max) {
 			ascii.at(i).append(1, ' ');
@@ -164,9 +163,37 @@ void turnContentToRect() {
 	}
 }
 
+void trim() {
+	// remove lines from bottom (stop if there's any content)
+	for(int y = ascii.size()-1; y > 0; y--) {
+		bool isEmptyLine = true;
+		for(int x = 0; x < ascii.at(y).length(); x++) {
+			if(ascii.at(y)[x] != ' ') {
+				isEmptyLine = false;
+				break;
+			}
+		}
+		if(!isEmptyLine) break;
+		else {
+			ascii.erase(ascii.begin() + y);
+			colorCoords.erase(colorCoords.begin() + y);
+		}
+	}
+
+	// remove trailing whitespaces
+	for(int y = 0; y < ascii.size(); y++) {
+		while(ascii.at(y).back() == ' ') {
+			ascii.at(y).pop_back();			
+			colorCoords.at(y).pop_back();			
+		}
+	}
+}
+
 void save(bool shouldOverride) {
-	clean();
+	trim();
 	turnContentToRect();
+	clean();
+
 	string asciiStr = "";
 	for(int i = 0; i < ascii.size(); i++) {
 		asciiStr.append(ascii.at(i) + "\n");
@@ -192,8 +219,6 @@ void save(bool shouldOverride) {
 	file << asciiStr;
 }
 
-
-
 void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMode, int shouldRecord = true, bool repetitive = false) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	while(y > ascii.size()-1) {
@@ -216,8 +241,6 @@ void edit(char k, int x = cursor.x, int y = cursor.y, bool changeColor = colorMo
 
 	// revert color to 0 if entered key was whitespace
 	if(!changeColor && k == ' ') colorCoords.at(y)[x] = '0';
-
-	turnContentToRect();
 }
 
 void checkColorKeys(int k) {
@@ -394,8 +417,8 @@ void yank(bool isCut = false) {
 	for(int i = 0; i < selection.size(); i++) {
 		struct contentChar& s = selection[i];
 		if(isCut) {
-			edit(' ', s.pos.x, s.pos.y, false, true, true);		
-			edit('0', s.pos.x, s.pos.y, true, true, true);		
+			edit(' ', s.pos.x, s.pos.y, false, true, true);
+			edit('0', s.pos.x, s.pos.y, true, true, true);
 		}
 		s.pos.x -= origin.x;
 		s.pos.y -= origin.y;
