@@ -545,6 +545,29 @@ void renderSelection(vector<contentChar>& selection) {
 	}
 }
 
+int getColorNum(int num) {
+	switch(num) {
+		case 0:  return COLOR_BLACK;
+		case 1:  return COLOR_RED;
+		case 2:  return COLOR_GREEN;
+		case 3:  return COLOR_YELLOW;
+		case 4:  return COLOR_BLUE;
+		case 5:  return COLOR_MAGENTA;
+		case 6:  return COLOR_CYAN;
+		case 7:  return COLOR_WHITE;
+		default: return -1;
+	}
+}
+
+void createColorPairs() {
+	int MAXCOLORS = 8;
+	for(int i = 0; i < MAXCOLORS; i++) {
+		for(int j = 0; j < MAXCOLORS; j++) {
+			init_pair((j + i*MAXCOLORS)+1, getColorNum(j), getColorNum(i-1));
+		}
+	}
+}
+
 int main(int argc, char **argv) {
 	if(validateFile(argc, argv) == false) return 0;
 
@@ -564,14 +587,7 @@ int main(int argc, char **argv) {
 	cbreak();
 	agnos::setESCDELAY(0);
 	keypad(stdscr, true);
-	init_pair(1, COLOR_BLACK,   COLOR_WHITE);
-	init_pair(2, COLOR_RED,     -1);
-	init_pair(3, COLOR_GREEN,   -1);
-	init_pair(4, COLOR_YELLOW,  -1);
-	init_pair(5, COLOR_BLUE,    -1);
-	init_pair(6, COLOR_MAGENTA, -1);
-	init_pair(7, COLOR_CYAN,    -1);
-	init_pair(8, COLOR_WHITE,   -1);
+	createColorPairs();	
 
 	// call these for first frame, since subsequent draws happen after getInput() 
 	draw(0, 0, &ascii, &colorCoords);
