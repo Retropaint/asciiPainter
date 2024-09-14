@@ -12,14 +12,14 @@
 #define ASCIICOLOR 7
 #define INSERT 8
 #define FIRSTCOLOR 9
-#define LASTCOLOR 17
-#define SAVE 18
-#define UNDO 19
-#define FLOODFILL 20
-#define VISUAL 21
-#define YANK 22
-#define PASTE 23
-#define CUT 24
+#define LASTCOLOR 16
+#define SAVE 17
+#define UNDO 18
+#define FLOODFILL 19
+#define VISUAL 20
+#define YANK 21
+#define PASTE 22
+#define CUT 23
 
 enum CONTENTMODE {
 	ASCII,

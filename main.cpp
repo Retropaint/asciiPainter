@@ -12,7 +12,7 @@
 using std::string;
 using std::vector;
 
-int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','0','W','u','f','v','y','p','d'};
+int input[] = {'k','l','j','h','r','w','q','c','i','1','2','3','4','5','6','7','8','W','u','f','v','y','p','d'};
 vector<string> ascii, colorFg, colorBg;
 vector<action> actions;
 vector<contentChar> pseudoSelection, selection;
@@ -22,7 +22,7 @@ struct vec2 cursor(0, 0), prevCursor(0, 0);
 bool programRunning = true;
 char defaultAscii = ' ';
 char defaultColorFg = '0';
-char defaultColorBg = '0';
+char defaultColorBg = '7';
 
 void loadAscii(string filename, vector<string>* ascii, vector<string>* colorFg, vector<string>* colorBg) {
 	string raw;
@@ -118,9 +118,10 @@ bool isInputKey(int k) {
 
 void getColorCoord(int x, int y, vector<string>* colorFg, vector<string>* colorBg) {
 	int CHAR_INT_OFFSET = 48;
-	int fgNum = (colorFg->at(y)[x] - CHAR_INT_OFFSET) * 9;
+	int fgNum = (colorFg->at(y)[x] - CHAR_INT_OFFSET) * 8;
 	int bgNum = (colorBg->at(y)[x] - CHAR_INT_OFFSET);
-	attron(COLOR_PAIR(fgNum + bgNum));
+	message = std::to_string(fgNum) + std::to_string(bgNum);
+	attron(COLOR_PAIR(fgNum + bgNum + 1));
 }
 
 void draw(int x, int y, vector<string>* ascii, vector<string>* colorFg, vector<string>* colorBg) {
@@ -197,8 +198,6 @@ void trim() {
 }
 
 void save(bool shouldOverride) {
-	trim();
-	turnContentToRect();
 	//clean();
 
 	string asciiStr = "";
@@ -262,13 +261,18 @@ void edit(char k, int x = cursor.x, int y = cursor.y, enum CONTENTMODE contentMo
 
 	// revert color to 0 if entered key was whitespace
 	if(contentMode != ASCII && k == defaultAscii) colorFg.at(y)[x] = defaultColorFg;
+
+	trim();
+	turnContentToRect();
 }
 
 void checkColorKeys(int k) {
-	for(int i = FIRSTCOLOR; i < LASTCOLOR+1; i++) {
-		if(k == input[i]) {
+	for(int i = 0; i < (LASTCOLOR+1 - FIRSTCOLOR); i++) {
+		const int COLORINPUT = i + FIRSTCOLOR;
+		if(k == input[COLORINPUT]) {
 			const int NUM_CHAR_OFFSET = 40;
-			edit((char)(i + NUM_CHAR_OFFSET), cursor.x, cursor.y, contentMode);
+
+			edit((char)(COLORINPUT + NUM_CHAR_OFFSET -1), cursor.x, cursor.y, contentMode);
 			break;
 		}
 	}
@@ -312,10 +316,14 @@ void floodFill(int x, int y, char key, char toReplace, enum CONTENTMODE contentM
 		if(pos.x == x && pos.y == y-1) checkUp    = false;
 	}
 	// recursive
-	if(checkLeft  && content.at(y)[x-1] == toReplace)            floodFill(x-1, y, key, toReplace, contentMode, toBeFilled, false);
-	if(checkRight && content.at(y)[x+1] == toReplace)            floodFill(x+1, y, key, toReplace, contentMode, toBeFilled, false);
-	if(checkDown  && CANDOWN && content.at(y+1)[x] == toReplace) floodFill(x, y+1, key, toReplace, contentMode, toBeFilled, false);
-	if(checkUp    && CANUP   && content.at(y-1)[x] == toReplace) floodFill(x, y-1, key, toReplace, contentMode, toBeFilled, false);
+	if(checkLeft  && content.at(y)[x-1] == toReplace)            
+		floodFill(x-1, y, key, toReplace, contentMode, toBeFilled, false);
+	if(checkRight && content.at(y)[x+1] == toReplace)            
+		floodFill(x+1, y, key, toReplace, contentMode, toBeFilled, false);
+	if(checkDown  && CANDOWN && content.at(y+1)[x] == toReplace) 
+		floodFill(x, y+1, key, toReplace, contentMode, toBeFilled, false);
+	if(checkUp    && CANUP   && content.at(y-1)[x] == toReplace) 
+		floodFill(x, y-1, key, toReplace, contentMode, toBeFilled, false);
 }
 
 void undo() {
@@ -578,7 +586,7 @@ void renderSelection(vector<contentChar>& selection) {
 
 int getColorNum(int num) {
 	switch(num) {
-		case 0:  return -1;
+		case 0:  return COLOR_WHITE;
 		case 1:  return COLOR_RED;
 		case 2:  return COLOR_GREEN;
 		case 3:  return COLOR_YELLOW;
@@ -591,11 +599,11 @@ int getColorNum(int num) {
 }
 
 void createColorPairs() {
-	int MAXCOLORS = 9;
+	int MAXCOLORS = 8;
 	for(int i = 0; i < MAXCOLORS; i++) {
 		for(int j = 0; j < MAXCOLORS; j++) {
 			int pairNum = j + i*MAXCOLORS;
-			init_pair(pairNum, getColorNum(i), getColorNum(j));
+			init_pair(pairNum+1, getColorNum(i), getColorNum(j));
 		}
 	}
 }
@@ -607,7 +615,7 @@ int main(int argc, char **argv) {
 	else {
 		ascii.push_back(" ");
 		colorFg.push_back("0");
-		colorBg.push_back("0");
+		colorBg.push_back("7");
 	}
 
 	loadConfig();
