@@ -75,10 +75,7 @@ void loadConfig() {
 }
 
 bool validateFile(int argc, char **argv) {
-	if(argc == 1) {
-		filename = "newAscii.txt";
-		return true;
-	}
+	
 
 	filename = argv[1];
 	if(filename.find(".txt") == string::npos) {
@@ -296,7 +293,7 @@ void floodFill(int x, int y, char key, char toReplace, enum CONTENTMODE contentM
 	bool CANDOWN = y+1 < content.size();
 	bool CANUP = y-1 > -1;
 	// if this point is whitespace, check if touching bounds
-	if(content.at(y)[x] == defaultAscii) {
+	if(ascii.at(y)[x] == defaultAscii) {
 		if((int)content.at(y)[x-1] == NULLCHAR) goto fillBoundsErr;
 		if((int)content.at(y)[x+1] == NULLCHAR) goto fillBoundsErr;
 		if(CANDOWN && (int)content.at(y+1)[x] == NULLCHAR) goto fillBoundsErr;
@@ -376,7 +373,7 @@ void tryFloodFill(int x, int y, char key, bool isColor) {
 		return;
 	}
 
-	char toReplace = (isColor ? colorFg : ascii).at(cursor.y)[cursor.x];
+	char toReplace = contentOf(contentMode).at(cursor.y)[cursor.x];
 	floodFill(cursor.x, cursor.y, (char)key, toReplace, contentMode, toBeFilled);
 
 	if(toBeFilled.back().x == -1) {
@@ -521,7 +518,7 @@ void getInput() {
 		}
 	}
 
-	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, (char)k, contentMode);
+ 	if(k == input[FLOODFILL]) tryFloodFill(cursor.x, cursor.y, (char)k, contentMode);
 		
 	if(k == input[ASCIICOLOR]) {
 		switch(contentMode) { 
@@ -540,14 +537,20 @@ void getInput() {
 		else tryRepeat(cursor.x, cursor.y, contentMode);
 	}
 
-	const char CURR = isOutOfBounds(cursor.x, cursor.y) ? defaultAscii : ascii.at(cursor.y)[cursor.x];
+	// check and apply colors if in color modes, and if current point isn't whitespace
+	const char CURR = isOutOfBounds(cursor.x, cursor.y) ? 
+		defaultAscii : 
+		ascii.at(cursor.y)[cursor.x];
 	if(contentMode != ASCII && CURR != defaultAscii) checkColorKeys(k);
 
-	if(repeatModeChar != NULLCHAR && didCursorMove()) edit((char)repeatModeChar);
+	if(repeatModeChar != NULLCHAR && didCursorMove()) 
+		edit((char)repeatModeChar);
 
 	if(selectMode != OFF) {
-		if(didCursorMove()) checkSelection(cursor.x, cursor.y, pseudoSelection);
-		if(k == input[YANK] || k == input[CUT]) yank(k == input[CUT]);
+		if(didCursorMove()) 
+			checkSelection(cursor.x, cursor.y, pseudoSelection);
+		if(k == input[YANK] || k == input[CUT]) 
+			yank(k == input[CUT]);
 	}
 
 	prevCursor.x = cursor.x;
@@ -612,8 +615,13 @@ void createColorPairs() {
 }
 
 int main(int argc, char **argv) {
-	if(validateFile(argc, argv) == false) return 0;
+	
+	// validate file if provided, otherwise set default name 
+	if(argc == 1) {
+		filename = "newAscii.txt";
+	} else validateFile(argc, argv);
 
+	// load ascii if provided, otherwise start anew
 	if(argc == 2) loadAscii(filename, &ascii, &colorFg, &colorBg);
 	else {
 		ascii.push_back(" ");
@@ -621,8 +629,10 @@ int main(int argc, char **argv) {
 		colorBg.push_back("7");
 	}
 
+	// load keybinds (not really supported atm)
 	loadConfig();
 
+	// ncurses/pdcurses stuff
 	initscr();
 	agnos::renameWindow("asciiPainter");
 	start_color();
@@ -638,12 +648,23 @@ int main(int argc, char **argv) {
 	displayStatus();
 	move(0, 0);
 
+	// main loop
 	while(programRunning) {
+		// meat of the program; most logic is funneled here 
 		getInput();
+
+		// naturally, canvas should be redrawn after input
 		erase();
 		draw(0, 0, &ascii, &colorFg, &colorBg);
+
+		// statuses at bottom left
 		displayStatus();
+
+		// update cursor
 		move(cursor.y, cursor.x);
+
+		// show selection, if selectMode is on
+		// cursor has to be turned off for this, since selection simulates multiple of them
 		if(selectMode != OFF) {
 			curs_set(0);
 			renderSelection(pseudoSelection);
