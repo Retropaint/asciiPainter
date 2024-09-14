@@ -48,19 +48,21 @@ struct vec2 {
 
 struct contentChar {
 	struct vec2 pos;
-	char ascii, color;
+	char ascii, colorFg, colorBg;
 
 	contentChar() {
 		pos.x = 0;
 		pos.y = 0;
 		ascii = 0;
-		color = 0;
+		colorFg = 0;
+		colorBg = 0;
 	}
 
-	contentChar(struct vec2 _pos, char _ascii, char _color) {
+	contentChar(struct vec2 _pos, char _ascii, char _colorFg, char _colorBg) {
 		pos = _pos;
 		ascii = _ascii;
-		color = _color;
+		colorFg = _colorFg;
+		colorBg = _colorBg;
 	}
 };
 

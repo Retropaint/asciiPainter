@@ -120,7 +120,6 @@ void getColorCoord(int x, int y, vector<string>* colorFg, vector<string>* colorB
 	int CHAR_INT_OFFSET = 48;
 	int fgNum = (colorFg->at(y)[x] - CHAR_INT_OFFSET) * 8;
 	int bgNum = (colorBg->at(y)[x] - CHAR_INT_OFFSET);
-	message = std::to_string(fgNum) + std::to_string(bgNum);
 	attron(COLOR_PAIR(fgNum + bgNum + 1));
 }
 
@@ -237,7 +236,7 @@ vector<string>& contentOf(enum CONTENTMODE contentMode) {
 	}
 }
 
-void edit(char k, int x = cursor.x, int y = cursor.y, enum CONTENTMODE contentMode = ASCII, int shouldRecord = true, bool repetitive = false) {
+void edit(char k, int x = cursor.x, int y = cursor.y, enum CONTENTMODE mode = contentMode, int shouldRecord = true, bool repetitive = false) {
 	// if this new char is beyond the current x and y that the content would allow, fill the remaining gaps with whitespaces
 	while(y > ascii.size()-1) {
 		ascii.push_back(" ");
@@ -250,17 +249,17 @@ void edit(char k, int x = cursor.x, int y = cursor.y, enum CONTENTMODE contentMo
 		colorBg.at(y).append(1, defaultColorBg);
 	}
 
-	auto& content = contentOf(contentMode);
+	auto& content = contentOf(mode);
 
 	if(shouldRecord) {
-		struct action newAction(x, y, content.at(y)[x], k, repetitive, contentMode);
+		struct action newAction(x, y, content.at(y)[x], k, repetitive, mode);
 		actions.push_back(newAction);
 	}
 
 	content.at(y)[x] = k;
 
 	// revert color to 0 if entered key was whitespace
-	if(contentMode != ASCII && k == defaultAscii) colorFg.at(y)[x] = defaultColorFg;
+	if(mode != ASCII && k == defaultAscii) colorFg.at(y)[x] = defaultColorFg;
 
 	trim();
 	turnContentToRect();
@@ -272,7 +271,7 @@ void checkColorKeys(int k) {
 		if(k == input[COLORINPUT]) {
 			const int NUM_CHAR_OFFSET = 40;
 
-			edit((char)(COLORINPUT + NUM_CHAR_OFFSET -1), cursor.x, cursor.y, contentMode);
+			edit((char)(COLORINPUT + NUM_CHAR_OFFSET - 1), cursor.x, cursor.y, contentMode);
 			break;
 		}
 	}
@@ -389,13 +388,15 @@ void tryFloodFill(int x, int y, char key, bool isColor) {
 	fillMode = true;
 }
 
-void getChar(char& asciiChar, char& colorChar, int x, int y, char defaultAscii, char defaultColorFg) {
+void getChar(char& asciiChar, char& colorCharFg, char& colorCharBg, int x, int y, char defaultAscii, char defaultFg, char defaultBg) {
 	if(!isOutOfBounds(x, y)) {
 		asciiChar = ascii.at(y)[x];
-		colorChar = colorFg.at(y)[x];
+		colorCharFg = colorFg.at(y)[x];
+		colorCharBg = colorBg.at(y)[x];
 	} else {
 		asciiChar = defaultAscii; 
-		colorChar = defaultColorFg; 
+		colorCharFg = defaultFg; 
+		colorCharBg = defaultBg; 
 	}
 }
 
@@ -414,9 +415,9 @@ void checkSelection(int x, int y, vector<contentChar>& selection) {
 				rectCursor.y += (cursor.y > rectCursor.y) ? 1 : -1; 
 			}
 
-			char asciiChar, colorChar;
-			getChar(asciiChar, colorChar, rectCursor.x, rectCursor.y, defaultAscii, defaultColorFg);
-			selection.push_back(contentChar(rectCursor, asciiChar, colorChar));
+			char asciiChar, colorCharFg, colorCharBg;
+			getChar(asciiChar, colorCharFg, colorCharBg, rectCursor.x, rectCursor.y, defaultAscii, defaultColorFg, defaultColorBg);
+			selection.push_back(contentChar(rectCursor, asciiChar, colorCharFg, colorCharBg));
 		}
 	}
 }
@@ -434,7 +435,7 @@ void yank(bool isCut = false) {
 	// confirm selection, by copying pseudo to normal
 	for(int i = 0; i < pseudoSelection.size(); i++) {
 		struct contentChar& s = pseudoSelection[i];
-		selection.push_back(contentChar(vec2(s.pos.x, s.pos.y), s.ascii, s.color));
+		selection.push_back(contentChar(vec2(s.pos.x, s.pos.y), s.ascii, s.colorFg, s.colorBg));
 	}
 	pseudoSelection.clear();
 
@@ -500,9 +501,9 @@ void getInput() {
 			selectMode = RECT;
 			pseudoSelection.clear();
 
-			char asciiChar, colorChar;
-			getChar(asciiChar, colorChar, cursor.x, cursor.y, defaultAscii, defaultColorFg);
-			pseudoSelection.push_back(contentChar(cursor, asciiChar, colorChar));
+			char asciiChar, colorCharFg, colorCharBg;
+			getChar(asciiChar, colorCharFg, colorCharBg, cursor.x, cursor.y, defaultAscii, defaultColorFg, defaultColorBg);
+			pseudoSelection.push_back(contentChar(cursor, asciiChar, colorCharFg, colorCharBg));
 		}
 	}
 	if(k == input[PASTE]) {
@@ -514,8 +515,9 @@ void getInput() {
 			pos.y = selection[i].pos.y + cursor.y;
 			if(pos.x < 0 || pos.y < 0 || selection[i].ascii == defaultAscii) continue;
 
-			edit(selection[i].ascii, pos.x, pos.y, ASCII, true, true);
-			edit(selection[i].color, pos.x, pos.y, COLORFG, true, true);
+			edit(selection[i].ascii,   pos.x, pos.y, ASCII, true, true);
+			edit(selection[i].colorFg, pos.x, pos.y, COLORFG, true, true);
+			edit(selection[i].colorBg, pos.x, pos.y, COLORBG, true, true);
 		}
 	}
 
@@ -537,8 +539,9 @@ void getInput() {
 		if (repeatModeChar != NULLCHAR) repeatModeChar = NULLCHAR;
 		else tryRepeat(cursor.x, cursor.y, contentMode);
 	}
-		
-	if(contentMode != ASCII) checkColorKeys(k);
+
+	const char CURR = isOutOfBounds(cursor.x, cursor.y) ? defaultAscii : ascii.at(cursor.y)[cursor.x];
+	if(contentMode != ASCII && CURR != defaultAscii) checkColorKeys(k);
 
 	if(repeatModeChar != NULLCHAR && didCursorMove()) edit((char)repeatModeChar);
 
